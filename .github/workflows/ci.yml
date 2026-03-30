@@ -9,12 +9,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: .
-
     steps:
-      - name: Checkout
+      - name: Checkout backend repo
         uses: actions/checkout@v4
 
       - name: Set up Java 21
@@ -29,5 +25,5 @@ jobs:
       - name: Build backend
         run: ./gradlew clean bootJar
 
-      - name: Build Docker image
+      - name: Build backend Docker image
         run: docker build -t artbridge-backend:ci .
