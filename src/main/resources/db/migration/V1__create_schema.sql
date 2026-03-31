@@ -8,8 +8,8 @@ CREATE TABLE "user" (
     google_id varchar(255),
     email varchar(255) NOT NULL,
     username varchar(50) NOT NULL,
-    created_at timestamp NOT NULL,
-    updated_at timestamp NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
     CONSTRAINT user_pk PRIMARY KEY (id)
 );
 
@@ -23,8 +23,8 @@ CREATE TABLE profile (
     location varchar(255) NOT NULL,
     website varchar NOT NULL,
     profile_image_url text NOT NULL,
-    updated_at timestamp NOT NULL,
-    dob int NOT NULL,
+    updated_at timestamptz NOT NULL,
+    dob date NOT NULL,
     CONSTRAINT profile_pk PRIMARY KEY (id)
 );
 
@@ -40,8 +40,8 @@ CREATE TABLE artwork (
     creation_year smallint NOT NULL,
     views_count bigint NOT NULL DEFAULT 0,
     likes_count bigint NOT NULL DEFAULT 0,
-    created_at timestamp NOT NULL,
-    updated_at timestamp NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
     CONSTRAINT artwork_pk PRIMARY KEY (id)
 );
 
