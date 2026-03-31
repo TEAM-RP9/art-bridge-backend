@@ -28,13 +28,13 @@ public class UserService implements UserDetailsService {
     public @NonNull UserDetails loadUserByUsername(@NonNull String email) throws UsernameNotFoundException {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> {
-                    log.info("Login failed: no account found for email={}", email);
+                    log.info("Login failed: no account found");
                     return new UsernameNotFoundException("User not found");
                 });
 
         String password = user.getPasswordHash() != null ? user.getPasswordHash() : DUMMY_HASH;
         if (user.getPasswordHash() == null) {
-            log.info("Login failed: Google-only account attempted password login, email={}", email);
+            log.info("Login failed: Google-only account attempted password login, userId={}", user.getId());
         }
 
         return new org.springframework.security.core.userdetails.User(

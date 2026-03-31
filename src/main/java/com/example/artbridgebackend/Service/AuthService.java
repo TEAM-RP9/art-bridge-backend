@@ -31,7 +31,7 @@ public class AuthService {
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-        log.info("Login successful: userId={}, email={}", user.getId(), user.getEmail());
+        log.info("Login successful: userId={}", user.getId());
 
         return AuthResponse.builder()
                 .accessToken("placeholder")
