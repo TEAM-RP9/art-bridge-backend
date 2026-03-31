@@ -31,6 +31,11 @@ public class UserService implements UserDetailsService {
                     return new UsernameNotFoundException("User not found");
                 });
 
+        if (user.getPasswordHash() == null) {
+            log.info("Login failed: account has no password");
+            throw new UsernameNotFoundException("User not found");
+        }
+
         return new org.springframework.security.core.userdetails.User(
                 user.getEmail(),
                 user.getPasswordHash(),
