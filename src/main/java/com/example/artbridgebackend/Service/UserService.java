@@ -16,7 +16,6 @@ import java.util.Collections;
 public class UserService implements UserDetailsService {
 
     private static final Logger log = LoggerFactory.getLogger(UserService.class);
-    private static final String DUMMY_HASH = "{NONE}no-password-set";
 
     private final UserRepository userRepository;
 
@@ -32,14 +31,9 @@ public class UserService implements UserDetailsService {
                     return new UsernameNotFoundException("User not found");
                 });
 
-        String password = user.getPasswordHash() != null ? user.getPasswordHash() : DUMMY_HASH;
-        if (user.getPasswordHash() == null) {
-            log.info("Login failed: Google-only account attempted password login, userId={}", user.getId());
-        }
-
         return new org.springframework.security.core.userdetails.User(
                 user.getEmail(),
-                password,
+                user.getPasswordHash(),
                 Collections.emptyList()
         );
     }
