@@ -1,10 +1,10 @@
-package com.example.artbridgebackend.Controller;
+package com.example.artbridgebackend.controller;
 
-import com.example.artbridgebackend.Config.SecurityConfig;
-import com.example.artbridgebackend.Dto.AuthResponse;
-import com.example.artbridgebackend.Repository.UserRepository;
-import com.example.artbridgebackend.Service.AuthService;
-import com.example.artbridgebackend.Service.UserService;
+import com.example.artbridgebackend.config.SecurityConfig;
+import com.example.artbridgebackend.dto.AuthResponse;
+import com.example.artbridgebackend.repository.UserRepository;
+import com.example.artbridgebackend.service.AuthService;
+import com.example.artbridgebackend.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;

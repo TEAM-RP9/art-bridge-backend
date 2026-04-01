@@ -1,4 +1,4 @@
-package com.example.artbridgebackend.Dto;
+package com.example.artbridgebackend.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

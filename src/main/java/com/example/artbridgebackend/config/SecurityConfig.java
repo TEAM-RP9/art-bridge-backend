@@ -1,6 +1,6 @@
-package com.example.artbridgebackend.Config;
+package com.example.artbridgebackend.config;
 
-import com.example.artbridgebackend.Service.UserService;
+import com.example.artbridgebackend.service.UserService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;

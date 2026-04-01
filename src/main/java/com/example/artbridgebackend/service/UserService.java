@@ -1,7 +1,7 @@
-package com.example.artbridgebackend.Service;
+package com.example.artbridgebackend.service;
 
-import com.example.artbridgebackend.Entity.User;
-import com.example.artbridgebackend.Repository.UserRepository;
+import com.example.artbridgebackend.entity.User;
+import com.example.artbridgebackend.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.jspecify.annotations.NonNull;

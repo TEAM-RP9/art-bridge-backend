@@ -1,4 +1,4 @@
-package com.example.artbridgebackend.Entity;
+package com.example.artbridgebackend.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

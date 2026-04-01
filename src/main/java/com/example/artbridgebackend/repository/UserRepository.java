@@ -1,6 +1,6 @@
-package com.example.artbridgebackend.Repository;
+package com.example.artbridgebackend.repository;
 
-import com.example.artbridgebackend.Entity.User;
+import com.example.artbridgebackend.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

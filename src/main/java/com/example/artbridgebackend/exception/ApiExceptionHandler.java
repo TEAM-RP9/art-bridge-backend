@@ -1,4 +1,4 @@
-package com.example.artbridgebackend.Exception;
+package com.example.artbridgebackend.exception;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
