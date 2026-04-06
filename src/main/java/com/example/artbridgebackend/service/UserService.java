@@ -1,6 +1,6 @@
 package com.example.artbridgebackend.service;
 
-import com.example.artbridgebackend.Dto.RegistrationRequestDto;
+import com.example.artbridgebackend.dto.RegistrationRequestDto;
 import com.example.artbridgebackend.persistence.user.User;
 import com.example.artbridgebackend.persistence.user.UserMapper;
 import com.example.artbridgebackend.persistence.user.UserRepository;
@@ -14,16 +14,8 @@ public class UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
 
-    public void addNewUser(RegistrationRequestDto registrationRequestDto) throws Exception {
-        validateUsernameIsAvailable(registrationRequestDto.getUsername());
+    public void addNewUser(RegistrationRequestDto registrationRequestDto) {
         createAndSaveUser(registrationRequestDto);
-    }
-
-    private void validateUsernameIsAvailable(String username) throws Exception {
-        boolean usernameExists = userRepository.usernameExistsBy(username);
-        if (usernameExists) {
-            throw new Exception("Username already in use!");
-        }
     }
 
     private void createAndSaveUser(RegistrationRequestDto registrationRequestDto) {

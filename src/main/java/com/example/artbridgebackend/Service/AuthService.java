@@ -1,7 +1,7 @@
-package com.example.artbridgebackend.Service;
+package com.example.artbridgebackend.service;
 
-import com.example.artbridgebackend.Dto.AuthResponse;
-import com.example.artbridgebackend.Dto.LoginRequest;
+import com.example.artbridgebackend.dto.AuthResponse;
+import com.example.artbridgebackend.dto.LoginRequest;
 import org.springframework.stereotype.Service;
 
 @Service

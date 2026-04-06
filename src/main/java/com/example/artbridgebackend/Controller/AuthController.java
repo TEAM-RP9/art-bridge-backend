@@ -1,8 +1,8 @@
-package com.example.artbridgebackend.Controller;
+package com.example.artbridgebackend.controller;
 
-import com.example.artbridgebackend.Dto.AuthResponse;
-import com.example.artbridgebackend.Dto.LoginRequest;
-import com.example.artbridgebackend.Service.AuthService;
+import com.example.artbridgebackend.dto.AuthResponse;
+import com.example.artbridgebackend.dto.LoginRequest;
+import com.example.artbridgebackend.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
