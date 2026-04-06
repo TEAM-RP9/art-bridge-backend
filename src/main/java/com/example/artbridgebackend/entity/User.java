@@ -1,37 +1,39 @@
 package com.example.artbridgebackend.entity;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
 
+@Entity
+@Table(name = "\"user\"")
 @Getter
 @Setter
-@Entity
-@NoArgsConstructor
-@Table(name = "\"user\"")
 public class User {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id", nullable = false)
     private Long id;
 
-    @NotNull
-    @Column(name = "google_id", nullable = false, unique = true)
+    @Column(name = "google_id")
     private String googleId;
 
-    @NotNull
-    @Column(name = "email", nullable = false, unique = true)
+    @Column(nullable = false, unique = true)
     private String email;
 
-    @NotNull
-    @Column(name = "username", nullable = false, length = 50, unique = true)
+    @Column(nullable = false, length = 50)
     private String username;
+
+    @Column(name = "password_hash", length = 72)
+    private String passwordHash;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
