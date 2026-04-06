@@ -4,7 +4,7 @@
 -- tables
 -- Table: artwork
 CREATE TABLE artwork (
-    id bigserial  NOT NULL,
+    id int  NOT NULL,
     user_id bigint  NOT NULL,
     title varchar(255)  NOT NULL,
     description text  NOT NULL,
@@ -25,7 +25,7 @@ CREATE INDEX idx_artworks_user_id on artwork (user_id ASC);
 
 -- Table: profile
 CREATE TABLE profile (
-    id bigserial  NOT NULL,
+    id bigint  NOT NULL,
     user_id bigserial  NOT NULL,
     first_name varchar(100)  NOT NULL,
     last_name varchar(100)  NOT NULL,
@@ -40,9 +40,9 @@ CREATE TABLE profile (
 
 -- Table: user
 CREATE TABLE "user" (
-    id bigserial NOT NULL,
+    id bigint  NOT NULL,
     google_id varchar(255)  NOT NULL,
-    email varchar(255)  NOT NULL UNIQUE,
+    email varchar(255)  NOT NULL,
     username varchar(50)  NOT NULL,
     created_at timestamp  NOT NULL,
     updated_at timestamp  NOT NULL,
