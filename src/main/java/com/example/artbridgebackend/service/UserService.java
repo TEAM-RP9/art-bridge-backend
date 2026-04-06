@@ -1,6 +1,6 @@
 package com.example.artbridgebackend.service;
 
-import com.example.artbridgebackend.controller.RegistrationRequestDto;
+import com.example.artbridgebackend.Dto.RegistrationRequestDto;
 import com.example.artbridgebackend.persistence.user.User;
 import com.example.artbridgebackend.persistence.user.UserMapper;
 import com.example.artbridgebackend.persistence.user.UserRepository;

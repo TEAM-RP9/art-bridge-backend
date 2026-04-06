@@ -1,6 +1,6 @@
 package com.example.artbridgebackend.persistence.user;
 
-import com.example.artbridgebackend.controller.RegistrationRequestDto;
+import com.example.artbridgebackend.Dto.RegistrationRequestDto;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 

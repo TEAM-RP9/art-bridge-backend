@@ -1,5 +1,6 @@
 package com.example.artbridgebackend.controller;
 
+import com.example.artbridgebackend.Dto.RegistrationRequestDto;
 import com.example.artbridgebackend.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;

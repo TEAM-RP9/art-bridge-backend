@@ -1,4 +1,4 @@
-package com.example.artbridgebackend.controller;
+package com.example.artbridgebackend.Dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
