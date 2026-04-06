@@ -1,13 +1,12 @@
 package com.example.artbridgebackend.service;
 
 import com.example.artbridgebackend.dto.RegistrationRequest;
-import com.example.artbridgebackend.dto.RegistrationRequest;
 import com.example.artbridgebackend.entity.User;
 import com.example.artbridgebackend.mapper.UserMapper;
 import com.example.artbridgebackend.repository.UserRepository;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -23,8 +22,9 @@ public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, UserMapper userMapper) {
         this.userRepository = userRepository;
+        this.userMapper = userMapper;
     }
 
     @Override
@@ -47,6 +47,7 @@ public class UserService implements UserDetailsService {
         );
     }
 
+
     public void addNewUser(RegistrationRequest registrationRequest) {
         createAndSaveUser(registrationRequest);
     }
@@ -59,6 +60,4 @@ public class UserService implements UserDetailsService {
     private User createNewUser(RegistrationRequest registrationRequest) {
         return userMapper.toUser(registrationRequest);
     }
-
-
 }
