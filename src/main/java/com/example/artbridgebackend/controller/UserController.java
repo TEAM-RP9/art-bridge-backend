@@ -1,6 +1,6 @@
 package com.example.artbridgebackend.controller;
 
-import com.example.artbridgebackend.dto.RegistrationRequestDto;
+import com.example.artbridgebackend.dto.RegistrationRequest;
 import com.example.artbridgebackend.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
@@ -19,8 +19,8 @@ public class UserController {
 
     @PostMapping("/user")
     @Operation(summary = "Add new user", description = "Google Id and unique email must be provided")
-    public ResponseEntity<Void> addNewUser(@Valid @RequestBody RegistrationRequestDto registrationRequestDto) {
-        userService.addNewUser(registrationRequestDto);
+    public ResponseEntity<Void> addNewUser(@Valid @RequestBody RegistrationRequest registrationRequest) {
+        userService.addNewUser(registrationRequest);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 }

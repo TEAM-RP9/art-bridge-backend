@@ -1,4 +1,4 @@
-package com.example.artbridgebackend.persistence.user;
+package com.example.artbridgebackend.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;

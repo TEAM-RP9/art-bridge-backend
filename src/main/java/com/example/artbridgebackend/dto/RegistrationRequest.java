@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class RegistrationRequestDto {
+public class RegistrationRequest {
 
     @NotBlank(message = "Google Id is required!")
     private String googleId;

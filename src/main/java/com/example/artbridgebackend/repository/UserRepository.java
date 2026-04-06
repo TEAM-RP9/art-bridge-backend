@@ -1,5 +1,6 @@
-package com.example.artbridgebackend.persistence.user;
+package com.example.artbridgebackend.repository;
 
+import com.example.artbridgebackend.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
