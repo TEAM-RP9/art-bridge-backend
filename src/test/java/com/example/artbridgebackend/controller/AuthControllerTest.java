@@ -5,6 +5,7 @@ import com.example.artbridgebackend.dto.AuthResponse;
 import com.example.artbridgebackend.repository.UserRepository;
 import com.example.artbridgebackend.service.AuthService;
 import com.example.artbridgebackend.service.UserService;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -35,6 +36,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private GoogleIdTokenVerifier googleIdTokenVerifier;
 
     @Test
     void login_withValidCredentials_returns200() throws Exception {
@@ -95,6 +99,89 @@ class AuthControllerTest {
     @Test
     void login_withEmptyBody_returns400() throws Exception {
         mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void googleLogin_withValidToken_returns200() throws Exception {
+        AuthResponse response = AuthResponse.builder()
+                .accessToken("placeholder")
+                .tokenType("Bearer")
+                .userId(1L)
+                .build();
+
+        when(authService.googleLogin(any())).thenReturn(response);
+
+        mockMvc.perform(post("/auth/oauth/google")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"idToken": "valid-google-token"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("placeholder"))
+                .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.userId").value(1));
+    }
+
+    @Test
+    void googleLogin_withValidTokenAndEmailLink_returns200() throws Exception {
+        AuthResponse response = AuthResponse.builder()
+                .accessToken("placeholder")
+                .tokenType("Bearer")
+                .userId(2L)
+                .build();
+
+        when(authService.googleLogin(any())).thenReturn(response);
+
+        mockMvc.perform(post("/auth/oauth/google")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"idToken": "valid-google-token-link"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value(2));
+    }
+
+    @Test
+    void googleLogin_withInvalidToken_returns401() throws Exception {
+        when(authService.googleLogin(any())).thenThrow(new BadCredentialsException("Authentication failed"));
+
+        mockMvc.perform(post("/auth/oauth/google")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"idToken": "invalid-token"}
+                                """))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void googleLogin_withUnverifiedEmail_returns401() throws Exception {
+        when(authService.googleLogin(any())).thenThrow(new BadCredentialsException("Authentication failed"));
+
+        mockMvc.perform(post("/auth/oauth/google")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"idToken": "token-unverified-email"}
+                                """))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void googleLogin_withBlankIdToken_returns400() throws Exception {
+        mockMvc.perform(post("/auth/oauth/google")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"idToken": ""}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.fieldErrors").isArray());
+    }
+
+    @Test
+    void googleLogin_withEmptyBody_returns400() throws Exception {
+        mockMvc.perform(post("/auth/oauth/google")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest());
