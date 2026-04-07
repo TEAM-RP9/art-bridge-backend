@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX idx_user_google_id ON "user" (google_id) WHERE google_id IS NOT NULL;
