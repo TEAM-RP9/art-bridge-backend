@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -34,13 +33,12 @@ class UserControllerTest {
     private UserRepository userRepository;
 
     @Test
-    @WithMockUser
     void addNewUser_withValidRequest_returns201() throws Exception {
         RegistrationRequest request = new RegistrationRequest("google-id-123", "test@example.com");
 
         doNothing().when(userService).addNewUser(any(RegistrationRequest.class));
 
-        mockMvc.perform(post("/user")
+        mockMvc.perform(post("/user/create")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"googleId": "google-id-123",
@@ -52,11 +50,10 @@ class UserControllerTest {
     }
 
     @Test
-    @WithMockUser
     void addNewUser_withInvalidEmail_returns400() throws Exception {
         RegistrationRequest request = new RegistrationRequest("google-id-123", "invalid-email");
 
-        mockMvc.perform(post("/user")
+        mockMvc.perform(post("/user/create")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"googleId": "google-id-123",
@@ -68,11 +65,10 @@ class UserControllerTest {
     }
 
     @Test
-    @WithMockUser
     void addNewUser_withBlankGoogleId_returns400() throws Exception {
         RegistrationRequest request = new RegistrationRequest("", "test@example.com");
 
-        mockMvc.perform(post("/user")
+        mockMvc.perform(post("/user/create")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"googleId": "",
@@ -84,9 +80,8 @@ class UserControllerTest {
     }
 
     @Test
-    @WithMockUser
     void addNewUser_withEmptyBody_returns400() throws Exception {
-        mockMvc.perform(post("/user")
+        mockMvc.perform(post("/user/create")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest());
