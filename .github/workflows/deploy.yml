@@ -44,12 +44,14 @@ jobs:
             sudo docker builder prune -f
 
             for i in $(seq 1 24); do
-              if curl -fsS http://localhost/api/actuator/health > /dev/null 2>&1; then
+              if curl -fsS --max-time 5 http://localhost/api/actuator/health > /dev/null 2>&1; then
                 echo "Backend healthy"
                 break
               fi
               if [ $i -eq 24 ]; then
                 echo "Backend did not become healthy after 2 minutes"
+                echo "=== Backend logs ==="
+                sudo docker compose logs --tail=100 backend
                 exit 1
               fi
               echo "Attempt $i/24 - not ready yet, retrying in 5s..."
