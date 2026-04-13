@@ -1,4 +1,4 @@
-name: Deploy Art Bridge
+name: Deploy Backend
 
 on:
   push:
@@ -14,9 +14,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout infra repo
-        uses: actions/checkout@v4
-
       - name: Start SSH agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -27,7 +24,7 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -p "${{ secrets.VM_PORT }}" -H "${{ secrets.VM_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Deploy to VM
+      - name: Deploy backend to VM
         run: |
           ssh -p "${{ secrets.VM_PORT }}" "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}" '
             set -e
@@ -38,7 +35,7 @@ jobs:
             git pull --ff-only
 
             cd /home/ubuntu/rp9/infra
-            sudo docker compose up -d --build --remove-orphans backend
+            sudo docker compose up -d --build --no-deps backend
 
             sudo docker image prune -f
             sudo docker builder prune -f
@@ -56,5 +53,5 @@ jobs:
               sleep 5
             done
 
-            sudo docker compose ps
+            sudo docker compose ps backend
           '

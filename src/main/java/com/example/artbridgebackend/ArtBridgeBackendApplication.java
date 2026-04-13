@@ -9,5 +9,4 @@ public class ArtBridgeBackendApplication {
     public static void main(String[] args) {
         SpringApplication.run(ArtBridgeBackendApplication.class, args);
     }
-
 }
