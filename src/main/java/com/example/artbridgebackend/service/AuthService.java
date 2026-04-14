@@ -1,9 +1,9 @@
 package com.example.artbridgebackend.service;
 
-import com.example.artbridgebackend.dto.AuthResponse;
-import com.example.artbridgebackend.dto.GoogleLoginRequest;
-import com.example.artbridgebackend.dto.LoginRequest;
+import com.example.artbridgebackend.dto.*;
 import com.example.artbridgebackend.entity.User;
+import com.example.artbridgebackend.exception.EmailAlreadyInUseException;
+import com.example.artbridgebackend.mapper.UserMapper;
 import com.example.artbridgebackend.repository.UserRepository;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
@@ -27,12 +27,19 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
     private final GoogleIdTokenVerifier googleIdTokenVerifier;
+    private final UserMapper userMapper;
+    private final UserService userService;
 
-    public AuthService(AuthenticationManager authenticationManager, UserRepository userRepository,
-                       GoogleIdTokenVerifier googleIdTokenVerifier) {
+    public AuthService(AuthenticationManager authenticationManager,
+                       UserRepository userRepository,
+                       GoogleIdTokenVerifier googleIdTokenVerifier,
+                       UserMapper userMapper,
+                       UserService userService) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.googleIdTokenVerifier = googleIdTokenVerifier;
+        this.userMapper = userMapper;
+        this.userService = userService;
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -99,5 +106,14 @@ public class AuthService {
                 .tokenType("Bearer")
                 .userId(user.getId())
                 .build();
+    }
+
+    public UserResponse register(RegistrationRequest request) {
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new EmailAlreadyInUseException("Email already in use");
+        }
+
+        User savedUser = userService.addNewUser(request);
+        return userMapper.toUserResponse(savedUser);
     }
 }

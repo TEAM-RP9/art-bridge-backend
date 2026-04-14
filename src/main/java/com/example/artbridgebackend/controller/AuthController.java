@@ -1,8 +1,6 @@
 package com.example.artbridgebackend.controller;
 
-import com.example.artbridgebackend.dto.AuthResponse;
-import com.example.artbridgebackend.dto.GoogleLoginRequest;
-import com.example.artbridgebackend.dto.LoginRequest;
+import com.example.artbridgebackend.dto.*;
 import com.example.artbridgebackend.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -10,6 +8,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -70,5 +69,23 @@ public class AuthController {
     public ResponseEntity<AuthResponse> googleLogin(@RequestBody @Valid GoogleLoginRequest request) {
         AuthResponse response = authService.googleLogin(request);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/register")
+    @Operation(
+            summary = "User registration",
+            description = "Register a new user"
+    )
+    @ApiResponse(
+            responseCode = "201",
+            description = "User created successfully"
+    )
+    @ApiResponse(
+            responseCode = "409",
+            description = "Email already in use"
+    )
+    public ResponseEntity<UserResponse> register(@Valid @RequestBody RegistrationRequest request) {
+        UserResponse response = authService.register(request);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 }

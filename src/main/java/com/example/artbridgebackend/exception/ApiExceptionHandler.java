@@ -42,9 +42,10 @@ public class ApiExceptionHandler {
         return problemDetail;
     }
 
-    public ProblemDetail handleEmailAlreadyInUseException(EmailAlreadyInUseException e) {
+    @ExceptionHandler(EmailAlreadyInUseException.class)
+    public ProblemDetail handleEmailAlreadyInUseException(EmailAlreadyInUseException ex) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
-                HttpStatus.CONFLICT, e.getMessage());
+                HttpStatus.CONFLICT, ex.getMessage());
         problemDetail.setTitle("Email Already In Use");
         return problemDetail;
     }

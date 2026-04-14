@@ -47,8 +47,9 @@ public class UserService implements UserDetailsService {
         );
     }
 
-    public void addNewUser(RegistrationRequest registrationRequest) {
+    public User addNewUser(RegistrationRequest registrationRequest) {
         User user = userMapper.toUser(registrationRequest);
         userRepository.save(user);
+        return user;
     }
 }

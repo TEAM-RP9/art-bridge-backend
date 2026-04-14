@@ -2,6 +2,7 @@ package com.example.artbridgebackend.controller;
 
 import com.example.artbridgebackend.config.SecurityConfig;
 import com.example.artbridgebackend.dto.AuthResponse;
+import com.example.artbridgebackend.dto.UserResponse;
 import com.example.artbridgebackend.repository.UserRepository;
 import com.example.artbridgebackend.service.AuthService;
 import com.example.artbridgebackend.service.UserService;
@@ -185,5 +186,25 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void register_success_returns201() throws Exception {
+        UserResponse response = UserResponse.builder()
+                .id(1L)
+                .email("exampl@example.com")
+                .build();
+
+        when(authService.register(any())).thenReturn(response);
+
+        mockMvc.perform(post("/auth/register")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                    {
+                    "email": "exampl@example.com",
+                    "password": "1234567891234569"}
+                    """))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.email").value("exampl@example.com"));
     }
 }

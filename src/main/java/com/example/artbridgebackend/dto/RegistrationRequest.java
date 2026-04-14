@@ -18,5 +18,5 @@ public class RegistrationRequest {
 
     @NotBlank(message = "Password is required!")
     @Size(min = 15, message = "Password must be at least 15 characters")
-    private String passwordHash;
+    private String password;
 }
