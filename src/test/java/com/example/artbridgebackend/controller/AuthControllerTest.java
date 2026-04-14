@@ -1,28 +1,47 @@
 package com.example.artbridgebackend.controller;
 
+import com.example.artbridgebackend.config.JwtProperties;
 import com.example.artbridgebackend.config.SecurityConfig;
-import com.example.artbridgebackend.dto.AuthResponse;
+import com.example.artbridgebackend.entity.Role;
+import com.example.artbridgebackend.entity.User;
 import com.example.artbridgebackend.repository.UserRepository;
 import com.example.artbridgebackend.service.AuthService;
 import com.example.artbridgebackend.service.UserService;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
+import java.util.Arrays;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AuthController.class)
 @Import(SecurityConfig.class)
+@EnableConfigurationProperties(JwtProperties.class)
+@TestPropertySource(properties = {
+        "jwt.secret=test-secret-value-of-exactly-32bytes!",
+        "jwt.access-token-ttl=15m",
+        "jwt.refresh-token-ttl=30d",
+        "jwt.access-cookie-name=jwt",
+        "jwt.refresh-cookie-name=refresh"
+})
 class AuthControllerTest {
 
     @Autowired
@@ -40,32 +59,46 @@ class AuthControllerTest {
     @MockitoBean
     private GoogleIdTokenVerifier googleIdTokenVerifier;
 
+    private User seededUser;
+
+    @BeforeEach
+    void setUp() {
+        Role role = new Role();
+        role.setId(1L);
+        role.setName("USER");
+
+        seededUser = new User();
+        seededUser.setId(42L);
+        seededUser.setEmail("test@example.com");
+        seededUser.setRole(role);
+    }
+
     @Test
-    void login_withValidCredentials_returns200() throws Exception {
-        AuthResponse response = AuthResponse.builder()
-                .accessToken("placeholder")
-                .tokenType("Bearer")
-                .userId(1L)
-                .build();
+    void login_withValidCredentials_setsAccessCookieAndReturnsIdentity() throws Exception {
+        when(authService.login(any())).thenReturn(seededUser);
+        when(authService.generateToken(seededUser)).thenReturn("test.jwt.token");
 
-        when(authService.login(any())).thenReturn(response);
-
-        mockMvc.perform(post("/auth/login")
+        MvcResult result = mockMvc.perform(post("/auth/login").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"email": "test@example.com", "password": "secret123"}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").value("placeholder"))
-                .andExpect(jsonPath("$.tokenType").value("Bearer"))
-                .andExpect(jsonPath("$.userId").value(1));
+                .andExpect(jsonPath("$.userId").value(42))
+                .andExpect(jsonPath("$.email").value("test@example.com"))
+                .andExpect(jsonPath("$.role").value("USER"))
+                .andExpect(jsonPath("$.accessToken").doesNotExist())
+                .andReturn();
+
+        assertThat(setCookie(result, "jwt")).contains("jwt=test.jwt.token")
+                .contains("HttpOnly").contains("Secure").contains("SameSite=Strict");
     }
 
     @Test
     void login_withWrongPassword_returns401() throws Exception {
         when(authService.login(any())).thenThrow(new BadCredentialsException("Bad credentials"));
 
-        mockMvc.perform(post("/auth/login")
+        mockMvc.perform(post("/auth/login").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"email": "test@example.com", "password": "wrong"}
@@ -76,7 +109,7 @@ class AuthControllerTest {
 
     @Test
     void login_withBlankEmail_returns400() throws Exception {
-        mockMvc.perform(post("/auth/login")
+        mockMvc.perform(post("/auth/login").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"email": "", "password": "secret123"}
@@ -87,7 +120,7 @@ class AuthControllerTest {
 
     @Test
     void login_withInvalidEmailFormat_returns400() throws Exception {
-        mockMvc.perform(post("/auth/login")
+        mockMvc.perform(post("/auth/login").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"email": "not-an-email", "password": "secret123"}
@@ -98,57 +131,46 @@ class AuthControllerTest {
 
     @Test
     void login_withEmptyBody_returns400() throws Exception {
-        mockMvc.perform(post("/auth/login")
+        mockMvc.perform(post("/auth/login").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    void googleLogin_withValidToken_returns200() throws Exception {
-        AuthResponse response = AuthResponse.builder()
-                .accessToken("placeholder")
-                .tokenType("Bearer")
-                .userId(1L)
-                .build();
+    void login_withoutCsrfToken_returns403() throws Exception {
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email": "test@example.com", "password": "secret123"}
+                                """))
+                .andExpect(status().isForbidden());
+    }
 
-        when(authService.googleLogin(any())).thenReturn(response);
+    @Test
+    void googleLogin_withValidToken_setsAccessCookieAndReturnsIdentity() throws Exception {
+        when(authService.googleLogin(any())).thenReturn(seededUser);
+        when(authService.generateToken(seededUser)).thenReturn("test.jwt.token");
 
-        mockMvc.perform(post("/auth/oauth/google")
+        MvcResult result = mockMvc.perform(post("/auth/oauth/google").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"idToken": "valid-google-token"}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").value("placeholder"))
-                .andExpect(jsonPath("$.tokenType").value("Bearer"))
-                .andExpect(jsonPath("$.userId").value(1));
-    }
+                .andExpect(jsonPath("$.userId").value(42))
+                .andExpect(jsonPath("$.email").value("test@example.com"))
+                .andExpect(jsonPath("$.role").value("USER"))
+                .andReturn();
 
-    @Test
-    void googleLogin_withValidTokenAndEmailLink_returns200() throws Exception {
-        AuthResponse response = AuthResponse.builder()
-                .accessToken("placeholder")
-                .tokenType("Bearer")
-                .userId(2L)
-                .build();
-
-        when(authService.googleLogin(any())).thenReturn(response);
-
-        mockMvc.perform(post("/auth/oauth/google")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"idToken": "valid-google-token-link"}
-                                """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.userId").value(2));
+        assertThat(setCookie(result, "jwt")).contains("jwt=test.jwt.token");
     }
 
     @Test
     void googleLogin_withInvalidToken_returns401() throws Exception {
         when(authService.googleLogin(any())).thenThrow(new BadCredentialsException("Authentication failed"));
 
-        mockMvc.perform(post("/auth/oauth/google")
+        mockMvc.perform(post("/auth/oauth/google").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"idToken": "invalid-token"}
@@ -157,20 +179,8 @@ class AuthControllerTest {
     }
 
     @Test
-    void googleLogin_withUnverifiedEmail_returns401() throws Exception {
-        when(authService.googleLogin(any())).thenThrow(new BadCredentialsException("Authentication failed"));
-
-        mockMvc.perform(post("/auth/oauth/google")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {"idToken": "token-unverified-email"}
-                                """))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
     void googleLogin_withBlankIdToken_returns400() throws Exception {
-        mockMvc.perform(post("/auth/oauth/google")
+        mockMvc.perform(post("/auth/oauth/google").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"idToken": ""}
@@ -181,9 +191,17 @@ class AuthControllerTest {
 
     @Test
     void googleLogin_withEmptyBody_returns400() throws Exception {
-        mockMvc.perform(post("/auth/oauth/google")
+        mockMvc.perform(post("/auth/oauth/google").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    private String setCookie(MvcResult result, String cookieName) {
+        return Optional.ofNullable(result.getResponse().getHeaders("Set-Cookie"))
+                .flatMap(headers -> Arrays.asList(headers.toArray(new String[0])).stream()
+                        .filter(h -> h.startsWith(cookieName + "="))
+                        .findFirst())
+                .orElseThrow(() -> new AssertionError("Missing Set-Cookie for " + cookieName));
     }
 }

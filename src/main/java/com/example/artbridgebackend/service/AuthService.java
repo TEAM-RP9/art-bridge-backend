@@ -1,12 +1,14 @@
 package com.example.artbridgebackend.service;
 
-import com.example.artbridgebackend.dto.AuthResponse;
+import com.example.artbridgebackend.config.JwtProperties;
 import com.example.artbridgebackend.dto.GoogleLoginRequest;
 import com.example.artbridgebackend.dto.LoginRequest;
 import com.example.artbridgebackend.entity.User;
 import com.example.artbridgebackend.repository.UserRepository;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -15,9 +17,13 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import javax.crypto.SecretKey;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.time.Instant;
+import java.util.Date;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -27,15 +33,20 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
     private final GoogleIdTokenVerifier googleIdTokenVerifier;
+    private final SecretKey jwtSecretKey;
+    private final JwtProperties jwtProperties;
 
     public AuthService(AuthenticationManager authenticationManager, UserRepository userRepository,
-                       GoogleIdTokenVerifier googleIdTokenVerifier) {
+                       GoogleIdTokenVerifier googleIdTokenVerifier, SecretKey jwtSecretKey,
+                       JwtProperties jwtProperties) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.googleIdTokenVerifier = googleIdTokenVerifier;
+        this.jwtSecretKey = jwtSecretKey;
+        this.jwtProperties = jwtProperties;
     }
 
-    public AuthResponse login(LoginRequest request) {
+    public User login(LoginRequest request) {
         authenticationManager.authenticate(
                 UsernamePasswordAuthenticationToken.unauthenticated(request.getEmail(), request.getPassword())
         );
@@ -43,15 +54,10 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
         log.info("Login successful: userId={}", user.getId());
-
-        return AuthResponse.builder()
-                .accessToken("placeholder")
-                .tokenType("Bearer")
-                .userId(user.getId())
-                .build();
+        return user;
     }
 
-    public AuthResponse googleLogin(GoogleLoginRequest request) {
+    public User googleLogin(GoogleLoginRequest request) {
         GoogleIdToken idToken;
         try {
             idToken = googleIdTokenVerifier.verify(request.getIdToken());
@@ -93,11 +99,28 @@ public class AuthService {
         }
 
         log.info("Successful Google login, userId={}", user.getId());
+        return user;
+    }
 
-        return AuthResponse.builder()
-                .accessToken("placeholder")
-                .tokenType("Bearer")
-                .userId(user.getId())
-                .build();
+    public Claims parseToken(String token) {
+        return Jwts.parser()
+                .verifyWith(jwtSecretKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+    }
+
+    public String generateToken(User user) {
+        Instant now = Instant.now();
+        Instant expiresAt = now.plus(jwtProperties.accessTokenTtl());
+        return Jwts.builder()
+                .subject(String.valueOf(user.getId()))
+                .claim("email", user.getEmail())
+                .claim("role", user.getRole().getName())
+                .id(UUID.randomUUID().toString())
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(expiresAt))
+                .signWith(jwtSecretKey, Jwts.SIG.HS256)
+                .compact();
     }
 }
