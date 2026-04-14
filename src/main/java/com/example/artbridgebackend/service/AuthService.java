@@ -4,13 +4,17 @@ import com.example.artbridgebackend.dto.AuthResponse;
 import com.example.artbridgebackend.dto.GoogleLoginRequest;
 import com.example.artbridgebackend.dto.LoginRequest;
 import com.example.artbridgebackend.entity.User;
+import com.example.artbridgebackend.enums.AccountStatus;
 import com.example.artbridgebackend.repository.UserRepository;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
@@ -42,8 +46,8 @@ public class AuthService {
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        checkAccountStatus(user);
         log.info("Login successful: userId={}", user.getId());
-
         return AuthResponse.builder()
                 .accessToken("placeholder")
                 .tokenType("Bearer")
@@ -80,6 +84,7 @@ public class AuthService {
 
         if (userByGoogleId.isPresent()) {
             user = userByGoogleId.get();
+            checkAccountStatus(user);
         } else {
             Optional<User> userByEmail = userRepository.findByEmail(email);
             if (userByEmail.isEmpty()) {
@@ -87,6 +92,7 @@ public class AuthService {
                 throw new BadCredentialsException("Authentication failed");
             }
             user = userByEmail.get();
+            checkAccountStatus(user);
             user.setGoogleId(googleId);
             userRepository.save(user);
             log.info("Linked Google account to existing user, userId={}, googleId={}", user.getId(), googleId);
@@ -99,5 +105,23 @@ public class AuthService {
                 .tokenType("Bearer")
                 .userId(user.getId())
                 .build();
+    }
+
+    private void checkAccountStatus(User user) {
+        if (user.getStatus() == AccountStatus.ACTIVE) {
+            return;
+        }
+        
+        switch (user.getStatus()) {
+            case INACTIVE -> {
+                log.info("Login rejected: account inactive, userId={}", user.getId());
+                throw new DisabledException("Account is inactive");
+            }
+            case LOCKED -> {
+                log.info("Login rejected: account locked, userId={}", user.getId());
+                throw new LockedException("Account is locked");
+            }
+            default -> throw new AuthenticationServiceException("Unknown account status: " + user.getStatus());
+        }
     }
 }
