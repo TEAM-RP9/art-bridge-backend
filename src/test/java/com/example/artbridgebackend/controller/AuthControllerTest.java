@@ -6,8 +6,12 @@ import com.example.artbridgebackend.entity.Role;
 import com.example.artbridgebackend.entity.User;
 import com.example.artbridgebackend.repository.UserRepository;
 import com.example.artbridgebackend.service.AuthService;
+import com.example.artbridgebackend.service.RefreshTokenService;
+import com.example.artbridgebackend.service.RefreshTokenService.IssuedRefreshToken;
+import com.example.artbridgebackend.service.RefreshTokenService.RotationResult;
 import com.example.artbridgebackend.service.UserService;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,11 +25,14 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -51,6 +58,9 @@ class AuthControllerTest {
     private AuthService authService;
 
     @MockitoBean
+    private RefreshTokenService refreshTokenService;
+
+    @MockitoBean
     private UserRepository userRepository;
 
     @MockitoBean
@@ -74,9 +84,11 @@ class AuthControllerTest {
     }
 
     @Test
-    void login_withValidCredentials_setsAccessCookieAndReturnsIdentity() throws Exception {
+    void login_withValidCredentials_setsBothCookiesAndReturnsIdentity() throws Exception {
         when(authService.login(any())).thenReturn(seededUser);
         when(authService.generateToken(seededUser)).thenReturn("test.jwt.token");
+        when(refreshTokenService.issue(seededUser)).thenReturn(
+                new IssuedRefreshToken("raw-refresh", Instant.now().plus(30, ChronoUnit.DAYS)));
 
         MvcResult result = mockMvc.perform(post("/auth/login").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -92,6 +104,9 @@ class AuthControllerTest {
 
         assertThat(setCookie(result, "jwt")).contains("jwt=test.jwt.token")
                 .contains("HttpOnly").contains("Secure").contains("SameSite=Strict");
+        assertThat(setCookie(result, "refresh")).contains("refresh=raw-refresh")
+                .contains("Path=/auth/refresh").contains("HttpOnly").contains("Secure")
+                .contains("SameSite=Strict");
     }
 
     @Test
@@ -148,9 +163,11 @@ class AuthControllerTest {
     }
 
     @Test
-    void googleLogin_withValidToken_setsAccessCookieAndReturnsIdentity() throws Exception {
+    void googleLogin_withValidToken_setsBothCookiesAndReturnsIdentity() throws Exception {
         when(authService.googleLogin(any())).thenReturn(seededUser);
         when(authService.generateToken(seededUser)).thenReturn("test.jwt.token");
+        when(refreshTokenService.issue(seededUser)).thenReturn(
+                new IssuedRefreshToken("raw-refresh", Instant.now().plus(30, ChronoUnit.DAYS)));
 
         MvcResult result = mockMvc.perform(post("/auth/oauth/google").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -164,6 +181,7 @@ class AuthControllerTest {
                 .andReturn();
 
         assertThat(setCookie(result, "jwt")).contains("jwt=test.jwt.token");
+        assertThat(setCookie(result, "refresh")).contains("refresh=raw-refresh");
     }
 
     @Test
@@ -197,9 +215,65 @@ class AuthControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    void refresh_withValidRefreshCookie_rotatesAndSetsBothCookies() throws Exception {
+        Instant newExpiry = Instant.now().plus(30, ChronoUnit.DAYS);
+        when(refreshTokenService.rotate("old-refresh")).thenReturn(
+                new RotationResult(seededUser, new IssuedRefreshToken("new-refresh", newExpiry)));
+        when(authService.generateToken(seededUser)).thenReturn("new.jwt.token");
+
+        MvcResult result = mockMvc.perform(post("/auth/refresh").with(csrf())
+                        .cookie(new Cookie("refresh", "old-refresh")))
+                .andExpect(status().isNoContent())
+                .andReturn();
+
+        assertThat(setCookie(result, "jwt")).contains("jwt=new.jwt.token");
+        assertThat(setCookie(result, "refresh")).contains("refresh=new-refresh")
+                .contains("Path=/auth/refresh");
+    }
+
+    @Test
+    void refresh_withNoRefreshCookie_returns401() throws Exception {
+        mockMvc.perform(post("/auth/refresh").with(csrf()))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void refresh_withInvalidRefreshCookie_returns401() throws Exception {
+        when(refreshTokenService.rotate("bogus"))
+                .thenThrow(new BadCredentialsException("Invalid refresh token"));
+
+        mockMvc.perform(post("/auth/refresh").with(csrf())
+                        .cookie(new Cookie("refresh", "bogus")))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void revoke_clearsBothCookiesAndRevokesRefresh() throws Exception {
+        MvcResult result = mockMvc.perform(post("/auth/refresh/revoke").with(csrf())
+                        .cookie(new Cookie("refresh", "raw-refresh")))
+                .andExpect(status().isNoContent())
+                .andReturn();
+
+        verify(refreshTokenService).revoke("raw-refresh");
+        assertThat(setCookie(result, "jwt")).contains("jwt=").contains("Max-Age=0");
+        assertThat(setCookie(result, "refresh")).contains("refresh=").contains("Max-Age=0")
+                .contains("Path=/auth/refresh");
+    }
+
+    @Test
+    void revoke_withoutRefreshCookie_stillClearsCookies() throws Exception {
+        MvcResult result = mockMvc.perform(post("/auth/refresh/revoke").with(csrf()))
+                .andExpect(status().isNoContent())
+                .andReturn();
+
+        assertThat(setCookie(result, "jwt")).contains("Max-Age=0");
+        assertThat(setCookie(result, "refresh")).contains("Max-Age=0");
+    }
+
     private String setCookie(MvcResult result, String cookieName) {
-        return Optional.ofNullable(result.getResponse().getHeaders("Set-Cookie"))
-                .flatMap(headers -> Arrays.asList(headers.toArray(new String[0])).stream()
+        return Optional.of(result.getResponse().getHeaders("Set-Cookie"))
+                .flatMap(headers -> Arrays.stream(headers.toArray(new String[0]))
                         .filter(h -> h.startsWith(cookieName + "="))
                         .findFirst())
                 .orElseThrow(() -> new AssertionError("Missing Set-Cookie for " + cookieName));
