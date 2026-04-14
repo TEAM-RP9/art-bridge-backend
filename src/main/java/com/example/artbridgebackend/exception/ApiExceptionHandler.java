@@ -41,4 +41,11 @@ public class ApiExceptionHandler {
         problemDetail.setProperty("fieldErrors", fieldErrors);
         return problemDetail;
     }
+
+    public ProblemDetail handleEmailAlreadyInUseException(EmailAlreadyInUseException e) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.CONFLICT, e.getMessage());
+        problemDetail.setTitle("Email Already In Use");
+        return problemDetail;
+    }
 }
