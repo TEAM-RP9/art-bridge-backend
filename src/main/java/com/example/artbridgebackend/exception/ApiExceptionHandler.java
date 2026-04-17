@@ -21,7 +21,7 @@ public class ApiExceptionHandler {
     public ProblemDetail handleAuthenticationException(AuthenticationException ex) {
         log.info("Login failed: {}", ex.getMessage());
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
-                HttpStatus.UNAUTHORIZED, "Invalid email or password");
+                HttpStatus.UNAUTHORIZED, "Authentication failed");
         problemDetail.setTitle("Authentication Failed");
         return problemDetail;
     }

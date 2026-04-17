@@ -21,6 +21,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -119,7 +121,59 @@ class AuthControllerTest {
                                 {"email": "test@example.com", "password": "wrong"}
                                 """))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.detail").value("Invalid email or password"));
+                .andExpect(jsonPath("$.detail").value("Authentication failed"));
+    }
+
+    @Test
+    void login_inactiveAccount_returns401() throws Exception {
+        when(authService.login(any())).thenThrow(new DisabledException("Account is inactive"));
+
+        mockMvc.perform(post("/auth/login").with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email": "test@example.com", "password": "secret123"}
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.detail").value("Authentication failed"));
+    }
+
+    @Test
+    void login_lockedAccount_returns401() throws Exception {
+        when(authService.login(any())).thenThrow(new LockedException("Account is locked"));
+
+        mockMvc.perform(post("/auth/login").with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"email": "test@example.com", "password": "secret123"}
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.detail").value("Authentication failed"));
+    }
+
+    @Test
+    void googleLogin_inactiveAccount_returns401() throws Exception {
+        when(authService.googleLogin(any())).thenThrow(new DisabledException("Account is inactive"));
+
+        mockMvc.perform(post("/auth/oauth/google").with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"idToken": "valid-google-token"}
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.detail").value("Authentication failed"));
+    }
+
+    @Test
+    void googleLogin_lockedAccount_returns401() throws Exception {
+        when(authService.googleLogin(any())).thenThrow(new LockedException("Account is locked"));
+
+        mockMvc.perform(post("/auth/oauth/google").with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"idToken": "valid-google-token"}
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.detail").value("Authentication failed"));
     }
 
     @Test
