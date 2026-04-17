@@ -60,11 +60,6 @@ public class AuthService {
         checkAccountStatus(user);
         log.info("Login successful: userId={}", user.getId());
         return user;
-        return AuthResponse.builder()
-                .accessToken("placeholder")
-                .tokenType("Bearer")
-                .userId(user.getId())
-                .build();
     }
 
     public User googleLogin(GoogleLoginRequest request) {
@@ -139,7 +134,6 @@ public class AuthService {
             default -> throw new AuthenticationServiceException("Unknown account status: " + user.getStatus());
         }
     }
-}
 
     public String generateToken(User user) {
         Instant now = Instant.now();
@@ -154,4 +148,5 @@ public class AuthService {
                 .signWith(jwtSecretKey, Jwts.SIG.HS256)
                 .compact();
     }
+
 }

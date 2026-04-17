@@ -128,7 +128,7 @@ class AuthControllerTest {
     void login_inactiveAccount_returns401() throws Exception {
         when(authService.login(any())).thenThrow(new DisabledException("Account is inactive"));
 
-        mockMvc.perform(post("/auth/login")
+        mockMvc.perform(post("/auth/login").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"email": "test@example.com", "password": "secret123"}
@@ -141,7 +141,7 @@ class AuthControllerTest {
     void login_lockedAccount_returns401() throws Exception {
         when(authService.login(any())).thenThrow(new LockedException("Account is locked"));
 
-        mockMvc.perform(post("/auth/login")
+        mockMvc.perform(post("/auth/login").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"email": "test@example.com", "password": "secret123"}
@@ -154,7 +154,7 @@ class AuthControllerTest {
     void googleLogin_inactiveAccount_returns401() throws Exception {
         when(authService.googleLogin(any())).thenThrow(new DisabledException("Account is inactive"));
 
-        mockMvc.perform(post("/auth/oauth/google")
+        mockMvc.perform(post("/auth/oauth/google").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"idToken": "valid-google-token"}
@@ -167,7 +167,7 @@ class AuthControllerTest {
     void googleLogin_lockedAccount_returns401() throws Exception {
         when(authService.googleLogin(any())).thenThrow(new LockedException("Account is locked"));
 
-        mockMvc.perform(post("/auth/oauth/google")
+        mockMvc.perform(post("/auth/oauth/google").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"idToken": "valid-google-token"}
