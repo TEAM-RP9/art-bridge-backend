@@ -5,6 +5,7 @@ import com.example.artbridgebackend.dto.GoogleLoginRequest;
 import com.example.artbridgebackend.dto.LoginRequest;
 import com.example.artbridgebackend.entity.Role;
 import com.example.artbridgebackend.entity.User;
+import com.example.artbridgebackend.mapper.UserMapper;
 import com.example.artbridgebackend.repository.UserRepository;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
@@ -44,9 +45,11 @@ class AuthServiceTest {
 
     private AuthenticationManager authenticationManager;
     private UserRepository userRepository;
+    private UserMapper userMapper;
     private GoogleIdTokenVerifier googleIdTokenVerifier;
     private SecretKey jwtSecretKey;
     private AuthService authService;
+    private UserService userService;
 
     private User seededUser;
 
@@ -54,10 +57,12 @@ class AuthServiceTest {
     void setUp() {
         authenticationManager = mock(AuthenticationManager.class);
         userRepository = mock(UserRepository.class);
+        userService = mock(UserService.class);
+        userMapper = mock(UserMapper.class);
         googleIdTokenVerifier = mock(GoogleIdTokenVerifier.class);
         jwtSecretKey = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
-        authService = new AuthService(authenticationManager, userRepository,
-                googleIdTokenVerifier, jwtSecretKey, JWT_PROPERTIES);
+        authService = new AuthService(authenticationManager, userRepository, userMapper,
+                googleIdTokenVerifier, jwtSecretKey, JWT_PROPERTIES, userService);
 
         Role role = new Role();
         role.setId(1L);

@@ -346,7 +346,7 @@ class AuthControllerTest {
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.email").value("exampl@example.com"));
     }
-}
+
 
     private String setCookie(MvcResult result, String cookieName) {
         return Optional.of(result.getResponse().getHeaders("Set-Cookie"))

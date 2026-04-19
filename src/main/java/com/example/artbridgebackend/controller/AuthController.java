@@ -183,7 +183,6 @@ public class AuthController {
         UserResponse response = authService.register(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
-}
 
     private void addRefreshCookie(HttpServletResponse httpResponse, String rawRefresh, Instant expiresAt) {
         Duration maxAge = Duration.between(Instant.now(), expiresAt);
