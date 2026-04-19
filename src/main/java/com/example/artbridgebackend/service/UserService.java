@@ -53,7 +53,7 @@ public class UserService implements UserDetailsService {
         );
     }
 
-    public void addNewUser(RegistrationRequest registrationRequest) {
+    public User addNewUser(RegistrationRequest registrationRequest) {
         User user = userMapper.toUser(registrationRequest);
         if (user.getRole() == null) {
             Role defaultRole = roleRepository.findByName(DEFAULT_ROLE_NAME)
@@ -62,5 +62,6 @@ public class UserService implements UserDetailsService {
             user.setRole(defaultRole);
         }
         userRepository.save(user);
+        return user;
     }
 }

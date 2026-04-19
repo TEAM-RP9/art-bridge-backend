@@ -5,6 +5,7 @@ import com.example.artbridgebackend.dto.AuthResponse;
 import com.example.artbridgebackend.dto.GoogleLoginRequest;
 import com.example.artbridgebackend.dto.LoginRequest;
 import com.example.artbridgebackend.entity.User;
+import com.example.artbridgebackend.dto.*;
 import com.example.artbridgebackend.service.AuthService;
 import com.example.artbridgebackend.service.RefreshTokenService;
 import com.example.artbridgebackend.service.RefreshTokenService.IssuedRefreshToken;
@@ -20,6 +21,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -162,6 +164,24 @@ public class AuthController {
 
     private void addAccessCookie(HttpServletResponse httpResponse, String token) {
         writeCookie(httpResponse, jwtProperties.accessCookieName(), token, "/", jwtProperties.accessTokenTtl());
+    }
+
+    @PostMapping("/register")
+    @Operation(
+            summary = "User registration",
+            description = "Register a new user"
+    )
+    @ApiResponse(
+            responseCode = "201",
+            description = "User created successfully"
+    )
+    @ApiResponse(
+            responseCode = "409",
+            description = "Email already in use"
+    )
+    public ResponseEntity<UserResponse> register(@Valid @RequestBody RegistrationRequest request) {
+        UserResponse response = authService.register(request);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
     private void addRefreshCookie(HttpServletResponse httpResponse, String rawRefresh, Instant expiresAt) {

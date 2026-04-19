@@ -4,6 +4,8 @@ import com.example.artbridgebackend.config.JwtProperties;
 import com.example.artbridgebackend.config.SecurityConfig;
 import com.example.artbridgebackend.entity.Role;
 import com.example.artbridgebackend.entity.User;
+import com.example.artbridgebackend.dto.AuthResponse;
+import com.example.artbridgebackend.dto.UserResponse;
 import com.example.artbridgebackend.repository.UserRepository;
 import com.example.artbridgebackend.service.AuthService;
 import com.example.artbridgebackend.service.RefreshTokenService;
@@ -324,6 +326,27 @@ class AuthControllerTest {
         assertThat(setCookie(result, "jwt")).contains("Max-Age=0");
         assertThat(setCookie(result, "refresh")).contains("Max-Age=0");
     }
+
+    @Test
+    void register_success_returns201() throws Exception {
+        UserResponse response = UserResponse.builder()
+                .id(1L)
+                .email("exampl@example.com")
+                .build();
+
+        when(authService.register(any())).thenReturn(response);
+
+        mockMvc.perform(post("/auth/register")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("""
+                    {
+                    "email": "exampl@example.com",
+                    "password": "1234567891234569"}
+                    """))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.email").value("exampl@example.com"));
+    }
+
 
     private String setCookie(MvcResult result, String cookieName) {
         return Optional.of(result.getResponse().getHeaders("Set-Cookie"))
