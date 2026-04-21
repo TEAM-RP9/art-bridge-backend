@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Data
 @AllArgsConstructor
@@ -18,5 +19,6 @@ public class RegistrationRequest {
 
     @NotBlank(message = "Password is required!")
     @Size(min = 15, message = "Password must be at least 15 characters")
+    @ToString.Exclude
     private String password;
 }
