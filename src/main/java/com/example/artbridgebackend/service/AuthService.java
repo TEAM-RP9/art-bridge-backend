@@ -71,48 +71,8 @@ public class AuthService {
         }
 
         public User googleLogin (GoogleLoginRequest request){
-            GoogleIdToken idToken;
-            try {
-                idToken = googleIdTokenVerifier.verify(request.getIdToken());
-            } catch (GeneralSecurityException | IOException e) {
-                log.warn("Google token verification error: {}", e.getMessage());
-                throw new BadCredentialsException("Authentication failed");
-            }
-
-            if (idToken == null) {
-                log.warn("Google token verification failed");
-                throw new BadCredentialsException("Authentication failed");
-            }
-
-            GoogleIdToken.Payload payload = idToken.getPayload();
-            String googleId = payload.getSubject();
-            String email = payload.getEmail();
-            Boolean emailVerified = payload.getEmailVerified();
-
-            if (!Boolean.TRUE.equals(emailVerified)) {
-                log.warn("Login rejected: email not verified, googleId={}", googleId);
-                throw new BadCredentialsException("Authentication failed");
-            }
-
-            Optional<User> userByGoogleId = userRepository.findByGoogleId(googleId);
-            User user;
-
-            if (userByGoogleId.isPresent()) {
-                user = userByGoogleId.get();
-                checkAccountStatus(user);
-            } else {
-                Optional<User> userByEmail = userRepository.findByEmail(email);
-                if (userByEmail.isEmpty()) {
-                    log.warn("No account found for Google user, email={}", email);
-                    throw new BadCredentialsException("Authentication failed");
-                }
-                user = userByEmail.get();
-                checkAccountStatus(user);
-                user.setGoogleId(googleId);
-                userRepository.save(user);
-                log.info("Linked Google account to existing user, userId={}, googleId={}", user.getId(), googleId);
-            }
-
+            GoogleIdToken.Payload payload = verifyGooglePayload(request.getIdToken());
+            User user = resolveGoogleUser(payload.getSubject(), payload.getEmail());
             log.info("Successful Google login, userId={}", user.getId());
             return user;
         }
@@ -141,6 +101,55 @@ public class AuthService {
                 }
                 default -> throw new AuthenticationServiceException("Unknown account status: " + user.getStatus());
             }
+        }
+
+        private GoogleIdToken.Payload verifyGooglePayload(String rawIdToken) {
+            GoogleIdToken idToken;
+            try {
+                idToken = googleIdTokenVerifier.verify(rawIdToken);
+            } catch (GeneralSecurityException | IOException e) {
+                log.warn("Google token verification error: {}", e.getMessage());
+                throw new BadCredentialsException("Authentication failed");
+            }
+
+            if (idToken == null) {
+                log.warn("Google token verification failed");
+                throw new BadCredentialsException("Authentication failed");
+            }
+
+            GoogleIdToken.Payload payload = idToken.getPayload();
+            if (!Boolean.TRUE.equals(payload.getEmailVerified())) {
+                log.warn("Login rejected: email not verified, googleId={}", payload.getSubject());
+                throw new BadCredentialsException("Authentication failed");
+            }
+
+            return payload;
+        }
+
+        private User resolveGoogleUser(String googleId, String email) {
+            Optional<User> userByGoogleId = userRepository.findByGoogleId(googleId);
+            if (userByGoogleId.isPresent()) {
+                User user = userByGoogleId.get();
+                checkAccountStatus(user);
+                return user;
+            }
+
+            Optional<User> userByEmail = userRepository.findByEmail(email);
+            if (userByEmail.isEmpty()) {
+                User user = userService.createGoogleUser(email, googleId);
+                log.info("Created Google-backed user, userId={}, googleId={}", user.getId(), googleId);
+                return user;
+            }
+
+            return linkGoogleAccount(userByEmail.get(), googleId);
+        }
+
+        private User linkGoogleAccount(User user, String googleId) {
+            checkAccountStatus(user);
+            user.setGoogleId(googleId);
+            userRepository.save(user);
+            log.info("Linked Google account to existing user, userId={}, googleId={}", user.getId(), googleId);
+            return user;
         }
 
         public String generateToken (User user){

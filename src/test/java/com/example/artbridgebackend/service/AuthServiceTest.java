@@ -33,7 +33,10 @@ import org.springframework.security.core.Authentication;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class AuthServiceTest {
@@ -132,6 +135,65 @@ class AuthServiceTest {
 
         assertThat(user.getId()).isEqualTo(42L);
         assertThat(user.getEmail()).isEqualTo("alice@example.com");
+    }
+
+    @Test
+    void googleLogin_withNoExistingAccount_createsGoogleUser_viaUserService() throws Exception {
+        GoogleLoginRequest request = new GoogleLoginRequest();
+        request.setIdToken("valid-google-token");
+
+        GoogleIdToken idToken = mock(GoogleIdToken.class);
+        GoogleIdToken.Payload payload = mock(GoogleIdToken.Payload.class);
+        when(payload.getSubject()).thenReturn("google-sub-456");
+        when(payload.getEmail()).thenReturn("new@example.com");
+        when(payload.getEmailVerified()).thenReturn(Boolean.TRUE);
+        when(idToken.getPayload()).thenReturn(payload);
+        when(googleIdTokenVerifier.verify("valid-google-token")).thenReturn(idToken);
+
+        Role role = new Role();
+        role.setId(1L);
+        role.setName("USER");
+
+        User createdUser = new User();
+        createdUser.setId(84L);
+        createdUser.setEmail("new@example.com");
+        createdUser.setGoogleId("google-sub-456");
+        createdUser.setRole(role);
+
+        when(userRepository.findByGoogleId("google-sub-456")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("new@example.com")).thenReturn(Optional.empty());
+        when(userService.createGoogleUser("new@example.com", "google-sub-456")).thenReturn(createdUser);
+
+        User user = authService.googleLogin(request);
+
+        assertThat(user).isSameAs(createdUser);
+        verify(userService).createGoogleUser("new@example.com", "google-sub-456");
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void googleLogin_withExistingEmail_keepsCurrentLinkingPath() throws Exception {
+        GoogleLoginRequest request = new GoogleLoginRequest();
+        request.setIdToken("valid-google-token");
+
+        GoogleIdToken idToken = mock(GoogleIdToken.class);
+        GoogleIdToken.Payload payload = mock(GoogleIdToken.Payload.class);
+        when(payload.getSubject()).thenReturn("google-sub-789");
+        when(payload.getEmail()).thenReturn("alice@example.com");
+        when(payload.getEmailVerified()).thenReturn(Boolean.TRUE);
+        when(idToken.getPayload()).thenReturn(payload);
+        when(googleIdTokenVerifier.verify("valid-google-token")).thenReturn(idToken);
+
+        when(userRepository.findByGoogleId("google-sub-789")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(Optional.of(seededUser));
+        when(userRepository.save(seededUser)).thenReturn(seededUser);
+
+        User user = authService.googleLogin(request);
+
+        assertThat(user).isSameAs(seededUser);
+        assertThat(user.getGoogleId()).isEqualTo("google-sub-789");
+        verify(userRepository).save(seededUser);
+        verify(userService, never()).createGoogleUser(anyString(), anyString());
     }
 
     @Test

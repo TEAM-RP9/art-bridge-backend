@@ -16,6 +16,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.List;
 
 @Service
@@ -28,6 +30,7 @@ public class UserService implements UserDetailsService {
     private final RoleRepository roleRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final SecureRandom secureRandom = new SecureRandom();
 
     public UserService(UserRepository userRepository, RoleRepository roleRepository, UserMapper userMapper, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
@@ -59,10 +62,7 @@ public class UserService implements UserDetailsService {
     public User addNewUser(RegistrationRequest registrationRequest) {
         User user = userMapper.toUser(registrationRequest);
         if (user.getRole() == null) {
-            Role defaultRole = roleRepository.findByName(DEFAULT_ROLE_NAME)
-                    .orElseThrow(() -> new IllegalStateException(
-                            "Default role '" + DEFAULT_ROLE_NAME + "' not found"));
-            user.setRole(defaultRole);
+            user.setRole(resolveDefaultRole());
         }
 
         String encodedPassword = passwordEncoder.encode(registrationRequest.getPassword());
@@ -70,5 +70,28 @@ public class UserService implements UserDetailsService {
 
         userRepository.save(user);
         return user;
+    }
+
+    public User createGoogleUser(String email, String googleId) {
+        User user = new User();
+        user.setEmail(email);
+        user.setGoogleId(googleId);
+        user.setRole(resolveDefaultRole());
+        user.setPasswordHash(passwordEncoder.encode(generateRandomPassword()));
+
+        userRepository.save(user);
+        return user;
+    }
+
+    private Role resolveDefaultRole() {
+        return roleRepository.findByName(DEFAULT_ROLE_NAME)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Default role '" + DEFAULT_ROLE_NAME + "' not found"));
+    }
+
+    private String generateRandomPassword() {
+        byte[] bytes = new byte[32];
+        secureRandom.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 }
