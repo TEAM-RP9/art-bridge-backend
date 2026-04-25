@@ -25,9 +25,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.crypto.SecretKey;
@@ -45,10 +47,21 @@ public class SecurityConfig {
         CookieCsrfTokenRepository csrfRepository = CookieCsrfTokenRepository.withHttpOnlyFalse();
         csrfRepository.setCookieCustomizer(c -> c.secure(true).sameSite("Strict").path("/"));
 
+        PathPatternRequestMatcher.Builder mvc = PathPatternRequestMatcher.withDefaults();
+
         http
+                // Exempt body-credential endpoints from CSRF: they authenticate via
+                // request-body credentials (password, Google ID token) — no ambient
+                // session cookie exists yet, so there is nothing for CSRF to forge.
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfRepository)
-                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
+                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
+                        .ignoringRequestMatchers(
+                                mvc.matcher(HttpMethod.POST, "/auth/login"),
+                                mvc.matcher(HttpMethod.POST, "/auth/oauth/google"),
+                                mvc.matcher(HttpMethod.POST, "/auth/register"),
+                                mvc.matcher(HttpMethod.POST, "/user/create")
+                        ))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
