@@ -8,11 +8,11 @@ import com.example.artbridgebackend.repository.MediaRepository;
 import com.example.artbridgebackend.repository.UserRepository;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
-import io.minio.RemoveObjectArgs;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -95,15 +95,19 @@ class StorageServiceTest {
     }
 
     @Test
-    void upload_dbSaveFails_callsRemoveObject_andRethrows() throws Exception {
+    void upload_s3PutFails_savesMediaThenRethrows() throws Exception {
         User user = new User();
         when(userRepository.getReferenceById(42L)).thenReturn(user);
-        RuntimeException dbException = new RuntimeException("DB error");
-        when(mediaRepository.save(any(Media.class))).thenThrow(dbException);
+        when(mediaRepository.save(any(Media.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(minioClient.putObject(any(PutObjectArgs.class)))
+                .thenThrow(new RuntimeException("S3 down"));
 
         assertThatThrownBy(() -> storageService.upload(PNG_BYTES, 42L))
-                .isSameAs(dbException);
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("Failed to upload file to object storage");
 
-        verify(minioClient).removeObject(any(RemoveObjectArgs.class));
+        InOrder inOrder = inOrder(mediaRepository, minioClient);
+        inOrder.verify(mediaRepository).save(any(Media.class));
+        inOrder.verify(minioClient).putObject(any(PutObjectArgs.class));
     }
 }

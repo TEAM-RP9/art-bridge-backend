@@ -7,10 +7,7 @@ import com.example.artbridgebackend.repository.MediaRepository;
 import com.example.artbridgebackend.repository.UserRepository;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
-import io.minio.RemoveObjectArgs;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,8 +17,6 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class StorageService {
-
-    private static final Logger log = LoggerFactory.getLogger(StorageService.class);
 
     private final MinioClient minioClient;
     private final S3Properties s3Properties;
@@ -33,6 +28,13 @@ public class StorageService {
         String contentType = detectImageContentType(bytes);
         String key = UUID.randomUUID() + extensionFor(contentType);
 
+        Media media = new Media();
+        media.setObjectKey(key);
+        media.setContentType(contentType);
+        media.setSizeBytes((long) bytes.length);
+        media.setOwnerUser(userRepository.getReferenceById(ownerUserId));
+        mediaRepository.save(media);
+
         try {
             minioClient.putObject(PutObjectArgs.builder()
                     .bucket(s3Properties.bucket())
@@ -42,26 +44,6 @@ public class StorageService {
                     .build());
         } catch (Exception e) {
             throw new RuntimeException("Failed to upload file to object storage", e);
-        }
-
-        // putObject is outside JPA transactional guarantees; on DB failure, remove the orphaned object
-        try {
-            Media media = new Media();
-            media.setObjectKey(key);
-            media.setContentType(contentType);
-            media.setSizeBytes((long) bytes.length);
-            media.setOwnerUser(userRepository.getReferenceById(ownerUserId));
-            mediaRepository.save(media);
-        } catch (Exception e) {
-            try {
-                minioClient.removeObject(RemoveObjectArgs.builder()
-                        .bucket(s3Properties.bucket())
-                        .object(key)
-                        .build());
-            } catch (Exception removeEx) {
-                log.error("Failed to remove orphaned object '{}' after DB save failure", key, removeEx);
-            }
-            throw e;
         }
 
         return s3Properties.publicBaseUrl() + "/" + s3Properties.bucket() + "/" + key;
