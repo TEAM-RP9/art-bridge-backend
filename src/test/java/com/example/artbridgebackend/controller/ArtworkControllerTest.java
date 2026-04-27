@@ -16,6 +16,9 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -25,7 +28,7 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -64,6 +67,12 @@ class ArtworkControllerTest {
     @Test
     void getMyArtworks_whenAuthenticated_returnsArtworks() throws Exception {
         JwtPrincipal principal = new JwtPrincipal(42L, "test@example.com", "USER");
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                principal,
+                null,
+                List.of(new SimpleGrantedAuthority("ROLE_USER"))
+        );
+
         PagedResponse<ArtworkResponse> response = PagedResponse.<ArtworkResponse>builder()
                 .items(List.of(ArtworkResponse.builder().id(1L).title("Artwork 1").build()))
                 .totalCount(1)
@@ -75,7 +84,7 @@ class ArtworkControllerTest {
         when(artworkService.getMyArtworks(eq(42L), anyInt(), anyInt())).thenReturn(response);
 
         mockMvc.perform(get("/artworks/my")
-                        .with(user(principal).roles("USER"))
+                        .with(authentication(authentication))
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].title").value("Artwork 1"))
@@ -83,9 +92,9 @@ class ArtworkControllerTest {
     }
 
     @Test
-    void getMyArtworks_whenNotAuthenticated_returns401() throws Exception {
+    void getMyArtworks_whenNotAuthenticated_returns403() throws Exception {
         mockMvc.perform(get("/artworks/my")
                         .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 }
