@@ -4,7 +4,6 @@ import com.example.artbridgebackend.config.JwtProperties;
 import com.example.artbridgebackend.config.SecurityConfig;
 import com.example.artbridgebackend.entity.Role;
 import com.example.artbridgebackend.entity.User;
-import com.example.artbridgebackend.dto.AuthResponse;
 import com.example.artbridgebackend.dto.UserResponse;
 import com.example.artbridgebackend.repository.UserRepository;
 import com.example.artbridgebackend.service.AuthService;
@@ -209,13 +208,18 @@ class AuthControllerTest {
     }
 
     @Test
-    void login_withoutCsrfToken_returns403() throws Exception {
+    void login_withoutCsrfToken_returns200() throws Exception {
+        when(authService.login(any())).thenReturn(seededUser);
+        when(authService.generateToken(seededUser)).thenReturn("test.jwt.token");
+        when(refreshTokenService.issue(seededUser)).thenReturn(
+                new IssuedRefreshToken("raw-refresh", Instant.now().plus(30, ChronoUnit.DAYS)));
+
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"email": "test@example.com", "password": "secret123"}
                                 """))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -325,6 +329,12 @@ class AuthControllerTest {
 
         assertThat(setCookie(result, "jwt")).contains("Max-Age=0");
         assertThat(setCookie(result, "refresh")).contains("Max-Age=0");
+    }
+
+    @Test
+    void refresh_withoutCsrfToken_returns403() throws Exception {
+        mockMvc.perform(post("/auth/refresh"))
+               .andExpect(status().isForbidden());
     }
 
     @Test

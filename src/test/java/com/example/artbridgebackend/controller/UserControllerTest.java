@@ -3,6 +3,7 @@ package com.example.artbridgebackend.controller;
 import com.example.artbridgebackend.config.JwtProperties;
 import com.example.artbridgebackend.config.SecurityConfig;
 import com.example.artbridgebackend.dto.RegistrationRequest;
+import com.example.artbridgebackend.entity.User;
 import com.example.artbridgebackend.repository.UserRepository;
 import com.example.artbridgebackend.service.AuthService;
 import com.example.artbridgebackend.service.RefreshTokenService;
@@ -18,8 +19,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -54,15 +55,15 @@ class UserControllerTest {
 
     @Test
     void addNewUser_withValidRequest_returns201() throws Exception {
-        RegistrationRequest request = new RegistrationRequest("google-id-123", "test@example.com");
+        RegistrationRequest request = new RegistrationRequest("test@example.com", "validPassword123");
 
-        doNothing().when(userService).addNewUser(any(RegistrationRequest.class));
+        when(userService.addNewUser(any(RegistrationRequest.class))).thenReturn(new User());
 
         mockMvc.perform(post("/user/create").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"googleId": "google-id-123",
-                                "email": "test@example.com"}
+                                {"email": "test@example.com",
+                                "password": "validPassword123"}
                                 """))
                 .andExpect(status().isCreated());
 
@@ -74,25 +75,25 @@ class UserControllerTest {
         mockMvc.perform(post("/user/create").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"googleId": "google-id-123",
-                                "email": "invalid-email"}
+                                {"email": "invalid-email",
+                                "password": "validPassword123"}
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors").isArray())
-                .andExpect(jsonPath("$.fieldErrors[0].field").value("email"));
+                .andExpect(jsonPath("$.fieldErrors[?(@.field=='email')]").exists());
     }
 
     @Test
-    void addNewUser_withBlankGoogleId_returns400() throws Exception {
+    void addNewUser_withBlankPassword_returns400() throws Exception {
         mockMvc.perform(post("/user/create").with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"googleId": "",
-                                "email": "test@example.com"}
+                                {"email": "test@example.com",
+                                "password": ""}
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.fieldErrors").isArray())
-                .andExpect(jsonPath("$.fieldErrors[0].field").value("googleId"));
+                .andExpect(jsonPath("$.fieldErrors[?(@.field=='password')]").exists());
     }
 
     @Test
