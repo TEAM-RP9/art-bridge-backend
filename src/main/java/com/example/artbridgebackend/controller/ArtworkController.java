@@ -7,6 +7,7 @@ import com.example.artbridgebackend.service.ArtworkService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -42,7 +43,7 @@ public class ArtworkController {
     public ResponseEntity<PagedResponse<ArtworkResponse>> getMyArtworks(
             @AuthenticationPrincipal JwtPrincipal principal,
             @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "10") @Min(1) int size) {
+            @RequestParam(defaultValue = "3") @Min(1) @Max(9) int size) {
         return ResponseEntity.ok(artworkService.getMyArtworks(principal.getId(), page, size));
     }
 }
