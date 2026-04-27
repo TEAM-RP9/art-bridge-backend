@@ -6,7 +6,6 @@ import com.example.artbridgebackend.entity.Artwork;
 import com.example.artbridgebackend.entity.User;
 import com.example.artbridgebackend.mapper.ArtworkMapper;
 import com.example.artbridgebackend.repository.ArtworkRepository;
-import com.example.artbridgebackend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,7 +18,6 @@ import org.springframework.data.domain.Pageable;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -31,9 +29,6 @@ class ArtworkServiceTest {
 
     @Mock
     private ArtworkRepository artworkRepository;
-
-    @Mock
-    private UserRepository userRepository;
 
     @Mock
     private ArtworkMapper artworkMapper;
@@ -65,8 +60,7 @@ class ArtworkServiceTest {
                 .title("Starry Night")
                 .build();
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(artworkRepository.findAllByUser(eq(user), any(Pageable.class))).thenReturn(page);
+        when(artworkRepository.findAllByUserId(eq(1L), any(Pageable.class))).thenReturn(page);
         when(artworkMapper.toResponse(artwork)).thenReturn(responseDto);
 
         PagedResponse<ArtworkResponse> result = artworkService.getMyArtworks(1L, 0, 10);
