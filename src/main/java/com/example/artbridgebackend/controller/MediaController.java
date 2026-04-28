@@ -1,10 +1,12 @@
 package com.example.artbridgebackend.controller;
 
+import com.example.artbridgebackend.security.JwtPrincipal;
 import com.example.artbridgebackend.service.StorageService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -23,19 +25,11 @@ public class MediaController {
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Upload an image", description = "Uploads an image file and returns its public URL")
-    public ResponseEntity<Map<String, String>> upload(@RequestParam("file") MultipartFile file) throws IOException {
-        String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image/")) {
-            return ResponseEntity.badRequest().build();
-        }
-
-        String url = storageService.upload(
-                file.getOriginalFilename(),
-                file.getInputStream(),
-                file.getSize(),
-                contentType
-        );
-
+    public ResponseEntity<Map<String, String>> upload(
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal JwtPrincipal principal) throws IOException {
+        byte[] bytes = file.getBytes();
+        String url = storageService.upload(bytes, principal.getId());
         return ResponseEntity.ok(Map.of("url", url));
     }
 }
