@@ -2,6 +2,7 @@ package com.example.artbridgebackend.controller;
 
 import com.example.artbridgebackend.config.JwtProperties;
 import com.example.artbridgebackend.config.SecurityConfig;
+import com.example.artbridgebackend.entity.Media;
 import com.example.artbridgebackend.exception.InvalidImageException;
 import com.example.artbridgebackend.repository.UserRepository;
 import com.example.artbridgebackend.security.JwtPrincipal;
@@ -79,9 +80,13 @@ class MediaControllerTest {
     }
 
     @Test
-    void upload_validPng_returns200WithUrl() throws Exception {
-        when(storageService.upload(any(byte[].class), any(Long.class)))
-                .thenReturn("http://localhost/media/photos/uuid.png");
+    void upload_validPng_returns200WithIdAndUrl() throws Exception {
+        Media media = new Media();
+        media.setId(99L);
+        media.setObjectKey("uuid.png");
+
+        when(storageService.upload(any(byte[].class), any(Long.class))).thenReturn(media);
+        when(storageService.buildPublicUrl(media)).thenReturn("http://localhost/media/photos/uuid.png");
 
         MockMultipartFile file = new MockMultipartFile("file", "test.png", "image/png", PNG_BYTES);
 
@@ -90,6 +95,7 @@ class MediaControllerTest {
                         .with(csrf())
                         .with(authentication(token(new JwtPrincipal(42L, "test@example.com", "ARTIST")))))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(99))
                 .andExpect(jsonPath("$.url").value("http://localhost/media/photos/uuid.png"));
     }
 
