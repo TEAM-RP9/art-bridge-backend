@@ -1,9 +1,12 @@
 package com.example.artbridgebackend.exception;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -74,5 +77,33 @@ public class ApiExceptionHandler {
                 HttpStatus.BAD_REQUEST, "Invalid multipart request");
         problemDetail.setTitle("Bad Request");
         return problemDetail;
+    }
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ProblemDetail handleEntityNotFoundException(EntityNotFoundException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.NOT_FOUND, "The requested resource was not found");
+        problemDetail.setTitle("Not Found");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ProblemDetail handleAccessDeniedException(AccessDeniedException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.FORBIDDEN, ex.getMessage());
+        problemDetail.setTitle("Forbidden");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ProblemDetail handleDataIntegrityViolationException(DataIntegrityViolationException ex) {
+        String message = ex.getMostSpecificCause().getMessage();
+        if (message != null && message.contains("artwork_media_id_unique")) {
+            ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                    HttpStatus.CONFLICT, "Media already linked to another artwork");
+            problemDetail.setTitle("Media already linked to another artwork");
+            return problemDetail;
+        }
+        throw ex;
     }
 }
