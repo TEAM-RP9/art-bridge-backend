@@ -236,6 +236,7 @@ class ArtworkServiceTest {
         req.setStatus(ArtworkStatus.PUBLISHED);
         req.setDescription("A masterpiece");
         req.setMedium("Oil");
+        req.setStyle("Abstract");
         req.setCreationYear((short) 2020);
         return req;
     }
