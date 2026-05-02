@@ -65,6 +65,9 @@ public class Artwork {
     @Column(precision = 10, scale = 2)
     private BigDecimal height;
 
+    @Column(name = "dimension_unit", length = 20)
+    private String dimensionUnit;
+
     @JdbcTypeCode(SqlTypes.ARRAY)
     @Column(name = "tags", columnDefinition = "text[]", nullable = false)
     private List<String> tags = new ArrayList<>();

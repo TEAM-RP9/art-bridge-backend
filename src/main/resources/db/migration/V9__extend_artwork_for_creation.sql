@@ -9,6 +9,7 @@ alter table artwork alter column creation_year drop not null;
 alter table artwork add column category varchar(40);
 alter table artwork add column width numeric(10,2);
 alter table artwork add column height numeric(10,2);
+alter table artwork add column dimension_unit varchar(20);
 alter table artwork add column tags text[] not null default '{}';
 alter table artwork add column status varchar(16) not null default 'DRAFT';
 alter table artwork add column show_on_profile boolean not null default false;
