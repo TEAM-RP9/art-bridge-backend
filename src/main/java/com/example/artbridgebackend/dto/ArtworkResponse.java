@@ -30,6 +30,7 @@ public class ArtworkResponse {
     private ArtworkCategory category;
     private BigDecimal width;
     private BigDecimal height;
+    private String dimensionUnit;
     private List<String> tags;
     private ArtworkStatus status;
     private Boolean showOnProfile;

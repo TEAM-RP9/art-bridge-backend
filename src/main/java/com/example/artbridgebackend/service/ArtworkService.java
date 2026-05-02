@@ -92,8 +92,10 @@ public class ArtworkService {
         artwork.setDescription(request.getDescription());
         artwork.setCategory(request.getCategory());
         artwork.setMedium(request.getMedium());
+        artwork.setStyle(request.getStyle());
         artwork.setWidth(request.getWidth());
         artwork.setHeight(request.getHeight());
+        artwork.setDimensionUnit(request.getDimensionUnit());
         artwork.setCreationYear(request.getCreationYear());
         artwork.setTags(normalizeTags(request.getTags()));
         artwork.setStatus(status);

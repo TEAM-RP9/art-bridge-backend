@@ -29,12 +29,14 @@ public class ArtworkCreateRequest {
     @Size(max = 2000)
     private String description;
 
-    @NotNull
+    @NotNull(message = "Image is required")
     private Long mediaId;
 
     private ArtworkCategory category;
 
     private String medium;
+
+    private String style;
 
     @DecimalMin("0.01")
     @DecimalMax("10000.00")
@@ -43,6 +45,8 @@ public class ArtworkCreateRequest {
     @DecimalMin("0.01")
     @DecimalMax("10000.00")
     private BigDecimal height;
+
+    private String dimensionUnit;
 
     @Min(1000)
     private Short creationYear;
