@@ -33,6 +33,7 @@ import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.http.HttpMethod;
 
 import javax.crypto.SecretKey;
 import java.io.IOException;
@@ -57,7 +58,7 @@ public class SecurityConfig {
                 // request-body credentials (password, Google ID token) — no ambient
                 // session cookie exists yet, so there is nothing for CSRF to forge.
                 .csrf(csrf -> csrf
-                        .csrfTokenRepository(csrfRepository)
+                        .csrfTokenRepository(csrfTokenRepository())
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
                         .ignoringRequestMatchers(
                                 mvc.matcher(HttpMethod.POST, "/auth/login"),
@@ -67,6 +68,8 @@ public class SecurityConfig {
                         ))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.GET, "/auth/me").authenticated()
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
@@ -125,5 +128,11 @@ public class SecurityConfig {
             }
             filterChain.doFilter(request, response);
         }
+    }
+
+    private static CookieCsrfTokenRepository csrfTokenRepository() {
+    CookieCsrfTokenRepository repo = CookieCsrfTokenRepository.withHttpOnlyFalse();
+    repo.setCookieCustomizer(c -> c.secure(false).sameSite("Lax"));
+    return repo;
     }
 }

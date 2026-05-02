@@ -28,6 +28,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.example.artbridgebackend.security.JwtPrincipal;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -74,6 +77,11 @@ public class AuthController {
         User user = authService.login(request);
         issueTokens(user, httpResponse);
         return ResponseEntity.ok(toAuthResponse(user));
+    }
+    
+    @GetMapping("/me")
+        public ResponseEntity<AuthResponse> me(@AuthenticationPrincipal JwtPrincipal principal) {
+            return ResponseEntity.ok(new AuthResponse(principal.getId(), principal.getEmail(), principal.getRole()));
     }
 
     @PostMapping("/oauth/google")
@@ -204,7 +212,7 @@ public class AuthController {
                              String path, Duration maxAge) {
         ResponseCookie cookie = ResponseCookie.from(name, value)
                 .httpOnly(true)
-                .secure(true)
+                .secure(jwtProperties.cookieSecure())
                 .sameSite("Strict")
                 .path(path)
                 .maxAge(maxAge)
