@@ -24,7 +24,7 @@ public class StorageService {
     private final UserRepository userRepository;
 
     @Transactional
-    public String upload(byte[] bytes, Long ownerUserId) {
+    public Media upload(byte[] bytes, Long ownerUserId) {
         String contentType = detectImageContentType(bytes);
         String key = UUID.randomUUID() + extensionFor(contentType);
 
@@ -46,7 +46,11 @@ public class StorageService {
             throw new RuntimeException("Failed to upload file to object storage", e);
         }
 
-        return s3Properties.publicBaseUrl() + "/" + s3Properties.bucket() + "/" + key;
+        return media;
+    }
+
+    public String buildPublicUrl(Media media) {
+        return s3Properties.publicBaseUrl() + "/" + s3Properties.bucket() + "/" + media.getObjectKey();
     }
 
     private String detectImageContentType(byte[] bytes) {

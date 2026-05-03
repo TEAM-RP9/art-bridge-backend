@@ -43,20 +43,22 @@ class StorageServiceTest {
 
     private StorageService storageService;
 
+    private S3Properties s3Properties;
+
     @BeforeEach
     void setUp() {
-        S3Properties s3Properties = new S3Properties(
+        s3Properties = new S3Properties(
                 "http://localhost:9000", "access", "secret", "photos", "http://localhost/media");
         storageService = new StorageService(minioClient, s3Properties, mediaRepository, userRepository);
     }
 
     @Test
-    void upload_validPngBytes_uploadsAndPersistsAndReturnsUrl() throws Exception {
+    void upload_validPngBytes_uploadsAndPersistsAndReturnsMedia() throws Exception {
         User user = new User();
         when(userRepository.getReferenceById(42L)).thenReturn(user);
         when(mediaRepository.save(any(Media.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        String url = storageService.upload(PNG_BYTES, 42L);
+        Media result = storageService.upload(PNG_BYTES, 42L);
 
         verify(minioClient).putObject(any(PutObjectArgs.class));
         ArgumentCaptor<Media> mediaCaptor = ArgumentCaptor.forClass(Media.class);
@@ -65,6 +67,9 @@ class StorageServiceTest {
         assertThat(saved.getContentType()).isEqualTo("image/png");
         assertThat(saved.getSizeBytes()).isEqualTo((long) PNG_BYTES.length);
         assertThat(saved.getOwnerUser()).isSameAs(user);
+        assertThat(result).isSameAs(saved);
+
+        String url = storageService.buildPublicUrl(result);
         assertThat(url).startsWith("http://localhost/media/photos/");
         assertThat(url).endsWith(".png");
     }
@@ -75,12 +80,24 @@ class StorageServiceTest {
         when(userRepository.getReferenceById(1L)).thenReturn(user);
         when(mediaRepository.save(any(Media.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        String url = storageService.upload(JPEG_BYTES, 1L);
+        Media result = storageService.upload(JPEG_BYTES, 1L);
 
         ArgumentCaptor<Media> mediaCaptor = ArgumentCaptor.forClass(Media.class);
         verify(mediaRepository).save(mediaCaptor.capture());
         assertThat(mediaCaptor.getValue().getContentType()).isEqualTo("image/jpeg");
+
+        String url = storageService.buildPublicUrl(result);
         assertThat(url).endsWith(".jpg");
+    }
+
+    @Test
+    void buildPublicUrl_constructsCorrectUrl() {
+        Media media = new Media();
+        media.setObjectKey("some-uuid.png");
+
+        String url = storageService.buildPublicUrl(media);
+
+        assertThat(url).isEqualTo("http://localhost/media/photos/some-uuid.png");
     }
 
     @Test

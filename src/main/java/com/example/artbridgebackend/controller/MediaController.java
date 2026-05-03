@@ -1,5 +1,7 @@
 package com.example.artbridgebackend.controller;
 
+import com.example.artbridgebackend.dto.MediaUploadResponse;
+import com.example.artbridgebackend.entity.Media;
 import com.example.artbridgebackend.security.JwtPrincipal;
 import com.example.artbridgebackend.service.StorageService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,7 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/media")
@@ -24,12 +25,12 @@ public class MediaController {
     private final StorageService storageService;
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Upload an image", description = "Uploads an image file and returns its public URL")
-    public ResponseEntity<Map<String, String>> upload(
+    @Operation(summary = "Upload an image", description = "Uploads an image file and returns its id and public URL")
+    public ResponseEntity<MediaUploadResponse> upload(
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal JwtPrincipal principal) throws IOException {
         byte[] bytes = file.getBytes();
-        String url = storageService.upload(bytes, principal.getId());
-        return ResponseEntity.ok(Map.of("url", url));
+        Media media = storageService.upload(bytes, principal.getId());
+        return ResponseEntity.ok(new MediaUploadResponse(media.getId(), storageService.buildPublicUrl(media)));
     }
 }
