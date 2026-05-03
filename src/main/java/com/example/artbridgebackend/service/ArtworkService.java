@@ -55,6 +55,24 @@ public class ArtworkService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
+    public PagedResponse<ArtworkResponse> getPublicArtworks(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Artwork> artworkPage = artworkRepository.findAllByStatus(ArtworkStatus.PUBLISHED, pageable);
+
+        List<ArtworkResponse> items = artworkPage.getContent().stream()
+                .map(artwork -> artworkMapper.toResponse(artwork, storageService))
+                .collect(Collectors.toList());
+
+        return PagedResponse.<ArtworkResponse>builder()
+                .items(items)
+                .totalCount(artworkPage.getTotalElements())
+                .currentPage(artworkPage.getNumber())
+                .pageSize(artworkPage.getSize())
+                .totalPages(artworkPage.getTotalPages())
+                .build();
+    }
+
     @Transactional
     public ArtworkResponse createArtwork(Long artistId, ArtworkCreateRequest request) {
         Media media = mediaRepository.findById(request.getMediaId())

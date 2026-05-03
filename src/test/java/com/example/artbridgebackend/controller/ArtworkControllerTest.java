@@ -77,6 +77,27 @@ class ArtworkControllerTest {
     private GoogleIdTokenVerifier googleIdTokenVerifier;
 
     @Test
+    void list_returnsPublicArtworks() throws Exception {
+        PagedResponse<ArtworkResponse> response = PagedResponse.<ArtworkResponse>builder()
+                .items(List.of(ArtworkResponse.builder().id(1L).title("Public Artwork")
+                        .status(ArtworkStatus.PUBLISHED).showOnProfile(true).build()))
+                .totalCount(1)
+                .currentPage(0)
+                .pageSize(10)
+                .totalPages(1)
+                .build();
+
+        when(artworkService.getPublicArtworks(anyInt(), anyInt())).thenReturn(response);
+
+        mockMvc.perform(get("/artworks")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].title").value("Public Artwork"))
+                .andExpect(jsonPath("$.items[0].status").value("PUBLISHED"))
+                .andExpect(jsonPath("$.totalCount").value(1));
+    }
+
+    @Test
     void getMyArtworks_whenAuthenticated_returnsArtworks() throws Exception {
         Authentication auth = artistAuth(42L);
 
@@ -104,7 +125,7 @@ class ArtworkControllerTest {
     void getMyArtworks_whenNotAuthenticated_returns401() throws Exception {
         mockMvc.perform(get("/artworks/my")
                         .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @Test

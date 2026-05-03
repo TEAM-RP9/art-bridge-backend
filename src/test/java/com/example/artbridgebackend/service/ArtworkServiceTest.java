@@ -100,6 +100,23 @@ class ArtworkServiceTest {
     }
 
     @Test
+    void getPublicArtworks_returnsPagedResponse() {
+        Page<Artwork> page = new PageImpl<>(List.of(artwork));
+        ArtworkResponse responseDto = ArtworkResponse.builder()
+                .id(100L).title("Starry Night").build();
+
+        when(artworkRepository.findAllByStatus(eq(ArtworkStatus.PUBLISHED), any(Pageable.class))).thenReturn(page);
+        when(artworkMapper.toResponse(artwork, storageService)).thenReturn(responseDto);
+
+        PagedResponse<ArtworkResponse> result = artworkService.getPublicArtworks(0, 10);
+
+        assertThat(result.getItems()).hasSize(1);
+        assertThat(result.getItems().get(0).getTitle()).isEqualTo("Starry Night");
+        assertThat(result.getTotalCount()).isEqualTo(1);
+        verify(artworkRepository).findAllByStatus(eq(ArtworkStatus.PUBLISHED), any(Pageable.class));
+    }
+
+    @Test
     void createArtwork_givenOwnedMedia_persistsAndReturnsResponse() {
         ArtworkCreateRequest request = draftRequest();
         ArtworkResponse expected = ArtworkResponse.builder().id(100L).title("WIP").build();
