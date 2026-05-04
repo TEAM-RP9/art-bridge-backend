@@ -21,4 +21,6 @@ public class RegistrationRequest {
     @Size(min = 15, message = "Password must be at least 15 characters")
     @ToString.Exclude
     private String password;
+
+    private RegisterableRole role;
 }
