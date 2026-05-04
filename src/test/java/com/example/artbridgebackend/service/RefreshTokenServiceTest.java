@@ -38,7 +38,8 @@ class RefreshTokenServiceTest {
             Duration.ofMinutes(15),
             REFRESH_TTL,
             "jwt",
-            "refresh"
+            "refresh",
+            false
     );
 
     @Mock
