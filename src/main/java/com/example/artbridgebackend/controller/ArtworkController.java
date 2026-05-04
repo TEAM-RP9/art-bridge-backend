@@ -41,7 +41,7 @@ public class ArtworkController {
             description = "Fetch a paginated list of published artworks, ordered by most recently created."
     )
     @ApiResponse(responseCode = "200", description = "Successfully retrieved artworks")
-    public ResponseEntity<PagedResponse<ArtworkResponse>> list(
+    public ResponseEntity<PagedResponse<ArtworkResponse>> getPublicArtworks(
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size) {
         return ResponseEntity.ok(artworkService.getPublicArtworks(page, size));
