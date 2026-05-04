@@ -30,12 +30,24 @@ import jakarta.validation.Valid;
 @RequestMapping("/artworks")
 @RequiredArgsConstructor
 @Validated
-@PreAuthorize("hasRole('ARTIST')")
 @Tag(name = "Artwork", description = "Artwork management APIs")
 public class ArtworkController {
 
     private final ArtworkService artworkService;
 
+    @GetMapping
+    @Operation(
+            summary = "List public artworks",
+            description = "Fetch a paginated list of published artworks, ordered by most recently created."
+    )
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved artworks")
+    public ResponseEntity<PagedResponse<ArtworkResponse>> getPublicArtworks(
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(50) int size) {
+        return ResponseEntity.ok(artworkService.getPublicArtworks(page, size));
+    }
+
+    @PreAuthorize("hasRole('ARTIST')")
     @GetMapping("/my")
     @Operation(
             summary = "Get signed-in artist's artworks",
@@ -51,6 +63,7 @@ public class ArtworkController {
         return ResponseEntity.ok(artworkService.getMyArtworks(principal.getId(), page, size));
     }
 
+    @PreAuthorize("hasRole('ARTIST')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Create an artwork", description = "Creates a new artwork for the authenticated artist.")
