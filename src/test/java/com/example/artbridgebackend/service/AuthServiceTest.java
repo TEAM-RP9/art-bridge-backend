@@ -44,7 +44,7 @@ class AuthServiceTest {
     private static final String SECRET = "test-secret-value-of-exactly-32bytes!";
     private static final Duration ACCESS_TTL = Duration.ofMinutes(15);
     private static final JwtProperties JWT_PROPERTIES = new JwtProperties(
-            SECRET, ACCESS_TTL, Duration.ofDays(30), "jwt", "refresh");
+            SECRET, ACCESS_TTL, Duration.ofDays(30), "jwt", "refresh", false);
 
     private AuthenticationManager authenticationManager;
     private UserRepository userRepository;
@@ -162,13 +162,72 @@ class AuthServiceTest {
 
         when(userRepository.findByGoogleId("google-sub-456")).thenReturn(Optional.empty());
         when(userRepository.findByEmail("new@example.com")).thenReturn(Optional.empty());
-        when(userService.createGoogleUser("new@example.com", "google-sub-456")).thenReturn(createdUser);
+        when(userService.createGoogleUser("new@example.com", "google-sub-456", null)).thenReturn(createdUser);
 
         User user = authService.googleLogin(request);
 
         assertThat(user).isSameAs(createdUser);
-        verify(userService).createGoogleUser("new@example.com", "google-sub-456");
+        verify(userService).createGoogleUser("new@example.com", "google-sub-456", null);
         verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void googleLogin_brandNewUser_withArtistRole_createsArtist() throws Exception {
+        GoogleLoginRequest request = new GoogleLoginRequest();
+        request.setIdToken("valid-google-token");
+        request.setRole(com.example.artbridgebackend.dto.RegisterableRole.ARTIST);
+
+        GoogleIdToken idToken = mock(GoogleIdToken.class);
+        GoogleIdToken.Payload payload = mock(GoogleIdToken.Payload.class);
+        when(payload.getSubject()).thenReturn("google-sub-999");
+        when(payload.getEmail()).thenReturn("artist@example.com");
+        when(payload.getEmailVerified()).thenReturn(Boolean.TRUE);
+        when(idToken.getPayload()).thenReturn(payload);
+        when(googleIdTokenVerifier.verify("valid-google-token")).thenReturn(idToken);
+
+        Role artistRole = new Role();
+        artistRole.setId(2L);
+        artistRole.setName("ARTIST");
+
+        User createdUser = new User();
+        createdUser.setId(99L);
+        createdUser.setEmail("artist@example.com");
+        createdUser.setGoogleId("google-sub-999");
+        createdUser.setRole(artistRole);
+
+        when(userRepository.findByGoogleId("google-sub-999")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("artist@example.com")).thenReturn(Optional.empty());
+        when(userService.createGoogleUser("artist@example.com", "google-sub-999",
+                com.example.artbridgebackend.dto.RegisterableRole.ARTIST)).thenReturn(createdUser);
+
+        User user = authService.googleLogin(request);
+
+        assertThat(user.getRole().getName()).isEqualTo("ARTIST");
+        verify(userService).createGoogleUser("artist@example.com", "google-sub-999",
+                com.example.artbridgebackend.dto.RegisterableRole.ARTIST);
+    }
+
+    @Test
+    void googleLogin_existingUser_withArtistRole_doesNotChangeRole() throws Exception {
+        GoogleLoginRequest request = new GoogleLoginRequest();
+        request.setIdToken("valid-google-token");
+        request.setRole(com.example.artbridgebackend.dto.RegisterableRole.ARTIST);
+
+        GoogleIdToken idToken = mock(GoogleIdToken.class);
+        GoogleIdToken.Payload payload = mock(GoogleIdToken.Payload.class);
+        when(payload.getSubject()).thenReturn("google-sub-123");
+        when(payload.getEmail()).thenReturn("alice@example.com");
+        when(payload.getEmailVerified()).thenReturn(Boolean.TRUE);
+        when(idToken.getPayload()).thenReturn(payload);
+        when(googleIdTokenVerifier.verify("valid-google-token")).thenReturn(idToken);
+
+        seededUser.setGoogleId("google-sub-123");
+        when(userRepository.findByGoogleId("google-sub-123")).thenReturn(Optional.of(seededUser));
+
+        User user = authService.googleLogin(request);
+
+        assertThat(user.getRole().getName()).isEqualTo("USER");
+        verify(userService, never()).createGoogleUser(anyString(), anyString(), any());
     }
 
     @Test
