@@ -125,7 +125,7 @@ class ArtworkControllerTest {
     void getMyArtworks_whenNotAuthenticated_returns401() throws Exception {
         mockMvc.perform(get("/artworks/my")
                         .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
