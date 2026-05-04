@@ -105,7 +105,7 @@ class ArtworkServiceTest {
         ArtworkResponse responseDto = ArtworkResponse.builder()
                 .id(100L).title("Starry Night").build();
 
-        when(artworkRepository.findAllByStatus(eq(ArtworkStatus.PUBLISHED), any(Pageable.class))).thenReturn(page);
+        when(artworkRepository.findAllByStatusAndShowOnProfile(eq(ArtworkStatus.PUBLISHED), eq(true), any(Pageable.class))).thenReturn(page);
         when(artworkMapper.toResponse(artwork, storageService)).thenReturn(responseDto);
 
         PagedResponse<ArtworkResponse> result = artworkService.getPublicArtworks(0, 10);
@@ -113,7 +113,7 @@ class ArtworkServiceTest {
         assertThat(result.getItems()).hasSize(1);
         assertThat(result.getItems().get(0).getTitle()).isEqualTo("Starry Night");
         assertThat(result.getTotalCount()).isEqualTo(1);
-        verify(artworkRepository).findAllByStatus(eq(ArtworkStatus.PUBLISHED), any(Pageable.class));
+        verify(artworkRepository).findAllByStatusAndShowOnProfile(eq(ArtworkStatus.PUBLISHED), eq(true), any(Pageable.class));
     }
 
     @Test

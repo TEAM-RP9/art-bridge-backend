@@ -10,5 +10,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ArtworkRepository extends JpaRepository<Artwork, Long> {
     Page<Artwork> findAllByUserId(Long userId, Pageable pageable);
-    Page<Artwork> findAllByStatus(ArtworkStatus status, Pageable pageable);
+    Page<Artwork> findAllByStatusAndShowOnProfile(ArtworkStatus status, boolean showOnProfile, Pageable pageable);
 }

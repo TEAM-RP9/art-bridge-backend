@@ -42,35 +42,15 @@ public class ArtworkService {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "updatedAt"));
         Page<Artwork> artworkPage = artworkRepository.findAllByUserId(userId, pageable);
 
-        List<ArtworkResponse> items = artworkPage.getContent().stream()
-                .map(artwork -> artworkMapper.toResponse(artwork, storageService))
-                .collect(Collectors.toList());
-
-        return PagedResponse.<ArtworkResponse>builder()
-                .items(items)
-                .totalCount(artworkPage.getTotalElements())
-                .currentPage(artworkPage.getNumber())
-                .pageSize(artworkPage.getSize())
-                .totalPages(artworkPage.getTotalPages())
-                .build();
+        return getArtworkResponsePagedResponse(artworkPage);
     }
 
     @Transactional(readOnly = true)
     public PagedResponse<ArtworkResponse> getPublicArtworks(int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<Artwork> artworkPage = artworkRepository.findAllByStatus(ArtworkStatus.PUBLISHED, pageable);
+        Page<Artwork> artworkPage = artworkRepository.findAllByStatusAndShowOnProfile(ArtworkStatus.PUBLISHED, true, pageable);
 
-        List<ArtworkResponse> items = artworkPage.getContent().stream()
-                .map(artwork -> artworkMapper.toResponse(artwork, storageService))
-                .collect(Collectors.toList());
-
-        return PagedResponse.<ArtworkResponse>builder()
-                .items(items)
-                .totalCount(artworkPage.getTotalElements())
-                .currentPage(artworkPage.getNumber())
-                .pageSize(artworkPage.getSize())
-                .totalPages(artworkPage.getTotalPages())
-                .build();
+        return getArtworkResponsePagedResponse(artworkPage);
     }
 
     @Transactional
@@ -100,6 +80,20 @@ public class ArtworkService {
 
         Artwork saved = artworkRepository.save(artwork);
         return artworkMapper.toResponse(saved, storageService);
+    }
+
+    private PagedResponse<ArtworkResponse> getArtworkResponsePagedResponse(Page<Artwork> artworkPage) {
+        List<ArtworkResponse> items = artworkPage.getContent().stream()
+                .map(artwork -> artworkMapper.toResponse(artwork, storageService))
+                .collect(Collectors.toList());
+
+        return PagedResponse.<ArtworkResponse>builder()
+                .items(items)
+                .totalCount(artworkPage.getTotalElements())
+                .currentPage(artworkPage.getNumber())
+                .pageSize(artworkPage.getSize())
+                .totalPages(artworkPage.getTotalPages())
+                .build();
     }
 
     private @NonNull Artwork buildArtwork(ArtworkCreateRequest request, User artist,
