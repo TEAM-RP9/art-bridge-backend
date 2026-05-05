@@ -3,6 +3,7 @@ package com.example.artbridgebackend.service;
 import com.example.artbridgebackend.config.JwtProperties;
 import com.example.artbridgebackend.dto.GoogleLoginRequest;
 import com.example.artbridgebackend.dto.LoginRequest;
+import com.example.artbridgebackend.dto.RegisterableRole;
 import com.example.artbridgebackend.dto.RegistrationRequest;
 import com.example.artbridgebackend.dto.UserResponse;
 import com.example.artbridgebackend.entity.User;
@@ -72,7 +73,7 @@ public class AuthService {
 
         public User googleLogin (GoogleLoginRequest request){
             GoogleIdToken.Payload payload = verifyGooglePayload(request.getIdToken());
-            User user = resolveGoogleUser(payload.getSubject(), payload.getEmail());
+            User user = resolveGoogleUser(payload.getSubject(), payload.getEmail(), request.getRole());
             log.info("Successful Google login, userId={}", user.getId());
             return user;
         }
@@ -126,7 +127,7 @@ public class AuthService {
             return payload;
         }
 
-        private User resolveGoogleUser(String googleId, String email) {
+        private User resolveGoogleUser(String googleId, String email, RegisterableRole requestedRole) {
             Optional<User> userByGoogleId = userRepository.findByGoogleId(googleId);
             if (userByGoogleId.isPresent()) {
                 User user = userByGoogleId.get();
@@ -136,7 +137,7 @@ public class AuthService {
 
             Optional<User> userByEmail = userRepository.findByEmail(email);
             if (userByEmail.isEmpty()) {
-                User user = userService.createGoogleUser(email, googleId);
+                User user = userService.createGoogleUser(email, googleId, requestedRole);
                 log.info("Created Google-backed user, userId={}, googleId={}", user.getId(), googleId);
                 return user;
             }

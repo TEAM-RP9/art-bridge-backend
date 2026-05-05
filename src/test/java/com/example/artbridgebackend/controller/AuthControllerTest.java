@@ -342,6 +342,7 @@ class AuthControllerTest {
         UserResponse response = UserResponse.builder()
                 .id(1L)
                 .email("exampl@example.com")
+                .role("USER")
                 .build();
 
         when(authService.register(any())).thenReturn(response);
@@ -354,7 +355,70 @@ class AuthControllerTest {
                     "password": "1234567891234569"}
                     """))
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.email").value("exampl@example.com"));
+            .andExpect(jsonPath("$.email").value("exampl@example.com"))
+            .andExpect(jsonPath("$.role").value("USER"));
+    }
+
+    @Test
+    void register_withArtistRole_returns201_andRolePassedThrough() throws Exception {
+        UserResponse response = UserResponse.builder()
+                .id(2L)
+                .email("artist@example.com")
+                .role("ARTIST")
+                .build();
+
+        when(authService.register(any())).thenReturn(response);
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                "email": "artist@example.com",
+                                "password": "1234567891234569",
+                                "role": "ARTIST"}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.role").value("ARTIST"));
+
+        org.mockito.ArgumentCaptor<com.example.artbridgebackend.dto.RegistrationRequest> captor =
+                org.mockito.ArgumentCaptor.forClass(com.example.artbridgebackend.dto.RegistrationRequest.class);
+        verify(authService).register(captor.capture());
+        assertThat(captor.getValue().getRole())
+                .isEqualTo(com.example.artbridgebackend.dto.RegisterableRole.ARTIST);
+    }
+
+    @Test
+    void register_withAdminRole_returns400() throws Exception {
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                "email": "admin@example.com",
+                                "password": "1234567891234569",
+                                "role": "ADMIN"}
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void googleLogin_withArtistRole_passesRoleThroughToService() throws Exception {
+        when(authService.googleLogin(any())).thenReturn(seededUser);
+        when(authService.generateToken(seededUser)).thenReturn("test.jwt.token");
+        when(refreshTokenService.issue(seededUser)).thenReturn(
+                new IssuedRefreshToken("raw-refresh", Instant.now().plus(30, ChronoUnit.DAYS)));
+
+        mockMvc.perform(post("/auth/oauth/google").with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"idToken": "valid-google-token", "role": "ARTIST"}
+                                """))
+                .andExpect(status().isOk());
+
+        org.mockito.ArgumentCaptor<com.example.artbridgebackend.dto.GoogleLoginRequest> captor =
+                org.mockito.ArgumentCaptor.forClass(com.example.artbridgebackend.dto.GoogleLoginRequest.class);
+        verify(authService).googleLogin(captor.capture());
+        assertThat(captor.getValue().getRole())
+                .isEqualTo(com.example.artbridgebackend.dto.RegisterableRole.ARTIST);
     }
 
 

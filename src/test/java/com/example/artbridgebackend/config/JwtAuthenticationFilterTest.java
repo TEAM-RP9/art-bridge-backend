@@ -34,7 +34,7 @@ class JwtAuthenticationFilterTest {
             Duration.ofDays(30),
             "jwt",
             "refresh",
-            true
+            false
     );
 
     @Mock

@@ -55,7 +55,7 @@ class UserControllerTest {
 
     @Test
     void addNewUser_withValidRequest_returns201() throws Exception {
-        RegistrationRequest request = new RegistrationRequest("test@example.com", "validPassword123");
+        RegistrationRequest request = new RegistrationRequest("test@example.com", "validPassword123", null);
 
         when(userService.addNewUser(any(RegistrationRequest.class))).thenReturn(new User());
 

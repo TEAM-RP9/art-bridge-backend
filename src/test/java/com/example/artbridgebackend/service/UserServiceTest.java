@@ -1,5 +1,6 @@
 package com.example.artbridgebackend.service;
 
+import com.example.artbridgebackend.dto.RegisterableRole;
 import com.example.artbridgebackend.dto.RegistrationRequest;
 import com.example.artbridgebackend.entity.Role;
 import com.example.artbridgebackend.entity.User;
@@ -44,7 +45,7 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-        registrationRequest = new RegistrationRequest("test@example.com", "suvaline_parool_mis_vajab_hashimist123");
+        registrationRequest = new RegistrationRequest("test@example.com", "suvaline_parool_mis_vajab_hashimist123", null);
         user = new User();
         user.setEmail("test@example.com");
         role = new Role();
@@ -65,6 +66,57 @@ class UserServiceTest {
         assertNotNull(savedUser.getPasswordHash());
         assertTrue(realEncoder.matches(registrationRequest.getPassword(), savedUser.getPasswordHash()));
         verify(userRepository).save(user);
+    }
+
+    @Test
+    void addNewUser_withArtistRole_assignsArtistRole() {
+        PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
+        UserService userService = new UserService(userRepository, roleRepository, userMapper, passwordEncoder);
+
+        Role artistRole = new Role();
+        artistRole.setName("ARTIST");
+        registrationRequest.setRole(RegisterableRole.ARTIST);
+
+        when(userMapper.toUser(registrationRequest)).thenReturn(user);
+        when(roleRepository.findByName("ARTIST")).thenReturn(Optional.of(artistRole));
+        when(passwordEncoder.encode(anyString())).thenReturn("encoded");
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        User savedUser = userService.addNewUser(registrationRequest);
+
+        assertSame(artistRole, savedUser.getRole());
+    }
+
+    @Test
+    void addNewUser_withNullRole_defaultsToUserRole() {
+        PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
+        UserService userService = new UserService(userRepository, roleRepository, userMapper, passwordEncoder);
+
+        when(userMapper.toUser(registrationRequest)).thenReturn(user);
+        when(roleRepository.findByName("USER")).thenReturn(Optional.of(role));
+        when(passwordEncoder.encode(anyString())).thenReturn("encoded");
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        User savedUser = userService.addNewUser(registrationRequest);
+
+        assertSame(role, savedUser.getRole());
+    }
+
+    @Test
+    void createGoogleUser_withArtistRole_assignsArtistRole() {
+        PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
+        UserService userService = new UserService(userRepository, roleRepository, userMapper, passwordEncoder);
+
+        Role artistRole = new Role();
+        artistRole.setName("ARTIST");
+
+        when(roleRepository.findByName("ARTIST")).thenReturn(Optional.of(artistRole));
+        when(passwordEncoder.encode(anyString())).thenReturn("encoded");
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        User savedUser = userService.createGoogleUser("artist@example.com", "google-id", RegisterableRole.ARTIST);
+
+        assertSame(artistRole, savedUser.getRole());
     }
 
     @Test

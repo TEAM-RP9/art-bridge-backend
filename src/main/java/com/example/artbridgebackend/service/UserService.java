@@ -1,5 +1,6 @@
 package com.example.artbridgebackend.service;
 
+import com.example.artbridgebackend.dto.RegisterableRole;
 import com.example.artbridgebackend.dto.RegistrationRequest;
 import com.example.artbridgebackend.entity.Role;
 import com.example.artbridgebackend.entity.User;
@@ -9,22 +10,28 @@ import com.example.artbridgebackend.repository.UserRepository;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class UserService implements UserDetailsService {
 
     private static final Logger log = LoggerFactory.getLogger(UserService.class);
     private static final String DEFAULT_ROLE_NAME = "USER";
+    private static final Set<RegisterableRole> ALLOWED_REGISTRATION_ROLES =
+            EnumSet.of(RegisterableRole.USER, RegisterableRole.ARTIST);
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -61,9 +68,7 @@ public class UserService implements UserDetailsService {
 
     public User addNewUser(RegistrationRequest registrationRequest) {
         User user = userMapper.toUser(registrationRequest);
-        if (user.getRole() == null) {
-            user.setRole(resolveDefaultRole());
-        }
+        user.setRole(resolveRegistrationRole(registrationRequest.getRole()));
 
         String encodedPassword = passwordEncoder.encode(registrationRequest.getPassword());
         user.setPasswordHash(encodedPassword);
@@ -72,15 +77,32 @@ public class UserService implements UserDetailsService {
         return user;
     }
 
-    public User createGoogleUser(String email, String googleId) {
+    public User createGoogleUser(String email, String googleId, RegisterableRole requestedRole) {
         User user = new User();
         user.setEmail(email);
         user.setGoogleId(googleId);
-        user.setRole(resolveDefaultRole());
+        user.setRole(resolveRegistrationRole(requestedRole));
         user.setPasswordHash(passwordEncoder.encode(generateRandomPassword()));
 
         userRepository.save(user);
         return user;
+    }
+
+    public User createGoogleUser(String email, String googleId) {
+        return createGoogleUser(email, googleId, null);
+    }
+
+    private Role resolveRegistrationRole(RegisterableRole requestedRole) {
+        if (requestedRole == null) {
+            return resolveDefaultRole();
+        }
+        if (!ALLOWED_REGISTRATION_ROLES.contains(requestedRole)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid role");
+        }
+        String name = requestedRole.name();
+        return roleRepository.findByName(name)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Role '" + name + "' not found"));
     }
 
     private Role resolveDefaultRole() {

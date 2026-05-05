@@ -39,7 +39,7 @@ class RefreshTokenServiceTest {
             REFRESH_TTL,
             "jwt",
             "refresh",
-            true
+            false
     );
 
     @Mock
